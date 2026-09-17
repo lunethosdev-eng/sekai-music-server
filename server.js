@@ -318,10 +318,16 @@ app.post('/api/upload', requireAuth, async (req, res) => {
     }
 });
 
+
 app.listen(PORT, async () => {
     console.log(`Servidor activo en puerto ${PORT}`);
+    
     if (process.env.DISCORD_BOT_TOKEN) {
-        await discordClient.login(process.env.DISCORD_BOT_TOKEN);
-        console.log('🤖 Bot de Discord conectado exitosamente');
+        try {
+            await discordClient.login(process.env.DISCORD_BOT_TOKEN);
+            console.log('🤖 Bot de Discord conectado exitosamente');
+        } catch (error) {
+            console.error('❌ Error al conectar el bot de Discord:', error.message);
+        }
     }
 });
