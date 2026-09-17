@@ -3,397 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sekai Music - Cyber Core API</title>
+    <title>Sekai Music Catalog</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
-        :root {
-            --bg-dark: #07070e;
-            --cyber-cyan: #00f2fe;
-            --cyber-magenta: #f43f5e;
-            --cyber-purple: #a855f7;
-        }
-
         body {
-            background-color: var(--bg-dark);
-            color: #e2e8f0;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.12) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(0, 242, 254, 0.1) 0px, transparent 50%);
-            background-attachment: fixed;
+            background-color: #08080a;
+            color: #e4e4e7;
+            font-family: 'Inter', sans-serif;
         }
 
-        .cyber-card {
-            background: rgba(15, 17, 28, 0.75);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.07);
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8);
+        .app-card {
+            background-color: #121216;
+            border: 1px solid #1e1e24;
+            transition: all 0.2s ease-in-out;
         }
 
-        .cyber-card:hover {
-            border-color: rgba(0, 242, 254, 0.4);
-            box-shadow: 0 0 25px rgba(0, 242, 254, 0.15);
-        }
-
-        .glow-text {
-            text-shadow: 0 0 12px rgba(0, 242, 254, 0.5);
+        .app-card:hover {
+            background-color: #181820;
+            border-color: #2e2e38;
         }
 
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .hidden-admin { display: none; }
 
-        @keyframes spinSlow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .spinning-vinyl {
-            animation: spinSlow 12s linear infinite;
-        }
-
-        .paused-vinyl {
-            animation-play-state: paused;
-        }
-
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #07070e; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #00f2fe; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #08080a; }
+        ::-webkit-scrollbar-thumb { background: #22222a; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3b3b48; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between pb-32">
+<body class="min-h-screen flex flex-col justify-between pb-28">
 
-    <!-- HEADER / NAVBAR -->
-    <header class="sticky top-0 z-40 bg-[#07070e]/80 backdrop-blur-xl border-b border-slate-800/80">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+    <!-- HEADER MINIMALISTA -->
+    <header class="sticky top-0 z-40 bg-[#08080a]/90 backdrop-blur-md border-b border-[#181820]">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-rose-500 p-[2px]">
-                    <div class="w-full h-full bg-[#07070e] rounded-[10px] flex items-center justify-center font-black text-cyan-400 text-lg">
-                        S
-                    </div>
+                <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-black font-extrabold text-sm tracking-tighter">
+                    SK
                 </div>
-                <!-- Doble clic para abrir el menú secreto de subida manual -->
-                <h1 class="text-xl font-extrabold tracking-wider text-white cursor-pointer select-none" ondblclick="toggleAdmin()" title="Doble clic para terminal secreta">
-                    SEKAI <span class="text-cyan-400 glow-text">MUSIC</span>
+                <!-- Doble clic para abrir menú de subida manual -->
+                <h1 class="text-base font-bold text-white cursor-pointer select-none tracking-tight" ondblclick="toggleAdmin()">
+                    SEKAI <span class="text-xs font-normal text-zinc-400 ml-1">MUSIC</span>
                 </h1>
             </div>
 
-            <nav class="flex space-x-1 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800">
-                <button onclick="switchTab('catalog')" id="btn-catalog" class="px-4 py-2 text-xs font-bold rounded-lg transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-lg shadow-cyan-500/20">
-                    <i class="fa-solid fa-compact-disc mr-1.5"></i> Catálogo
+            <div class="flex items-center space-x-3">
+                <div class="bg-[#121216] border border-[#1e1e24] rounded-full px-3.5 py-1 flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-xs font-medium text-zinc-300"><span id="song-count" class="font-bold text-white">0</span> canciones</span>
+                </div>
+                
+                <button onclick="switchTab('catalog')" id="btn-catalog" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-zinc-100 text-black">
+                    Biblioteca
                 </button>
-                <button onclick="switchTab('docs')" id="btn-docs" class="px-4 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition-all">
-                    <i class="fa-solid fa-code mr-1.5"></i> API Docs
+                <button onclick="switchTab('docs')" id="btn-docs" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-zinc-400 hover:text-white">
+                    API
                 </button>
-            </nav>
+            </div>
         </div>
     </header>
 
     <!-- CONTENIDO PRINCIPAL -->
-    <main class="max-w-7xl mx-auto px-4 py-8 w-full flex-grow">
+    <main class="max-w-7xl mx-auto px-6 py-6 w-full flex-grow">
 
-        <!-- SECCIÓN: CATÁLOGO -->
-        <section id="catalog" class="tab-content active space-y-8">
-            <!-- BANNER DE ESTADÍSTICAS -->
-            <div class="cyber-card p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div>
-                    <span class="text-xs font-mono text-cyan-400 uppercase tracking-widest font-semibold"><i class="fa-solid fa-bolt mr-1"></i> Servidor Activo</span>
-                    <h2 class="text-3xl font-extrabold text-white mt-1">Catálogo de Pistas Globales</h2>
-                    <p class="text-slate-400 text-xs mt-1">Ingesta automática cada 2 horas con filtrado de >60s, carátulas HD y letras sincronizadas.</p>
-                </div>
-                <div class="bg-slate-900/90 px-6 py-3 rounded-xl border border-slate-800 flex items-center space-x-4">
-                    <i class="fa-solid fa-music text-cyan-400 text-3xl"></i>
-                    <div>
-                        <span class="text-[10px] text-slate-400 font-mono block uppercase">Total Canciones</span>
-                        <span class="text-2xl font-black text-white font-mono" id="song-count">0</span>
-                    </div>
-                </div>
+        <!-- TAB: CATÁLOGO -->
+        <section id="catalog" class="tab-content active space-y-6">
+            
+            <!-- BUSCADOR -->
+            <div class="relative w-full">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-zinc-500 text-sm"></i>
+                <input type="text" id="search-input" oninput="filterSongs()" placeholder="Buscar por canción, artista o género..." class="w-full pl-11 pr-4 py-2.5 rounded-xl bg-[#121216] border border-[#1e1e24] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition">
             </div>
 
-            <!-- BÚSQUEDA Y FILTROS POR ARTISTA -->
-            <div class="space-y-4">
-                <div class="relative w-full">
-                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-500"></i>
-                    <input type="text" id="search-input" oninput="filterSongs()" placeholder="Buscar por canción, banda o artista (ej. Depresión Sonora, Laufey)..." class="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-900/90 border border-slate-800 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 transition font-medium">
-                </div>
-
-                <div class="flex overflow-x-auto space-x-2 pb-2" id="artist-filters">
-                    <button onclick="setArtistFilter('')" class="px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-black whitespace-nowrap shadow-md shadow-cyan-500/20">
-                        Todos los Artistas
-                    </button>
-                    <!-- Filtros dinámicos -->
-                </div>
+            <!-- CHIPS DE GÉNEROS Y CATEGORÍAS -->
+            <div class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none" id="genre-filters">
+                <button onclick="setGenreFilter('')" class="genre-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-black whitespace-nowrap">
+                    Todos
+                </button>
             </div>
 
-            <!-- GRID DE CANCIONES -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="catalog-grid">
-                <!-- Se cargan vía JS -->
+            <!-- PARRILLA DE CANCIONES -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="catalog-grid">
+                <!-- Se cargan dinámicamente -->
             </div>
         </section>
 
-        <!-- SECCIÓN: DOCUMENTACIÓN API -->
-        <section id="docs" class="tab-content space-y-6">
-            <div class="cyber-card p-8 rounded-2xl space-y-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-white mb-1"><i class="fa-solid fa-network-wired text-cyan-400 mr-2"></i> Documentación del Servicio</h2>
-                    <p class="text-slate-400 text-xs">Conecta tu app externa consumiendo nuestro REST API estructurado.</p>
-                </div>
+        <!-- TAB: API DOCS -->
+        <section id="docs" class="tab-content space-y-4">
+            <div class="app-card p-6 rounded-xl space-y-4">
+                <h2 class="text-base font-bold text-white">Documentación API</h2>
+                <p class="text-xs text-zinc-400">Endpoint para consultar hasta 1,000 canciones estructuradas.</p>
 
-                <div class="bg-slate-950 p-6 rounded-xl border border-slate-800/80 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <span class="px-3 py-1 bg-cyan-500/20 text-cyan-400 text-xs font-bold rounded-lg border border-cyan-500/30 font-mono">GET</span>
-                        <code class="text-slate-300 font-mono text-xs">/api/songs</code>
+                <div class="bg-[#08080a] p-4 rounded-lg border border-[#1e1e24] space-y-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-bold rounded">GET</span>
+                        <code class="text-xs text-zinc-200 font-mono">/api/songs</code>
                     </div>
-                    <p class="text-xs text-slate-400">Retorna la colección completa en formato JSON para tu app reproductora.</p>
-                    
-                    <h4 class="text-[10px] uppercase font-bold tracking-widest text-slate-500 mt-4">Ejemplo de Objeto JSON:</h4>
-                    <pre class="bg-slate-900 p-4 rounded-xl text-xs font-mono text-cyan-300 overflow-x-auto border border-slate-800">
+                    <pre class="text-[11px] font-mono text-zinc-400 pt-2 overflow-x-auto">
 [
   {
-    "id": 105,
-    "title": "Ya No Hay Verano",
-    "artist": "Depresión Sonora",
-    "duration": 195,
-    "source": "youtube",
-    "audio_url": "https://www.youtube.com/watch?v=...",
-    "cover_url": "https://is1-ssl.mzstatic.com/image/thumb/...",
-    "lyrics": "[00:12.30] Ya no hay verano en la ciudad...",
-    "artist_photo": "https://is1-ssl.mzstatic.com/..."
+    "id": 1,
+    "title": "Nombre de la Canción",
+    "artist": "Artista",
+    "genre": "Post-Punk",
+    "duration": 210,
+    "audio_url": "https://...",
+    "cover_url": "https://...",
+    "lyrics": "[00:10.00]..."
   }
 ]</pre>
                 </div>
             </div>
         </section>
 
-        <!-- MENÚ SECRETO: SUBIDA MANUAL -->
-        <section id="admin" class="tab-content hidden-admin space-y-6">
-            <div class="cyber-card p-8 rounded-2xl border border-rose-500/30 space-y-6">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-rose-400 flex items-center"><i class="fa-solid fa-user-gear mr-2"></i> Menú Secreto - Subida Manual</h2>
-                    <span class="text-[10px] font-mono bg-rose-500/20 text-rose-300 px-3 py-1 rounded-full border border-rose-500/30">Modo Admin</span>
-                </div>
-
-                <form id="upload-form" class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" id="title" required placeholder="Título de la Canción" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-white">
-                        <input type="text" id="artist" required placeholder="Artista / Banda" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-white">
+        <!-- SUBIDA MANUAL (MODO ADMIN OCULTO) -->
+        <section id="admin" class="tab-content hidden-admin space-y-4">
+            <div class="app-card p-6 rounded-xl space-y-4 border-amber-500/20">
+                <h3 class="text-sm font-bold text-amber-400">Añadir Canción Manualmente</h3>
+                <form id="upload-form" class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input type="text" id="title" required placeholder="Título" class="bg-[#08080a] border border-[#1e1e24] p-2.5 rounded-lg text-xs text-white">
+                        <input type="text" id="artist" required placeholder="Artista" class="bg-[#08080a] border border-[#1e1e24] p-2.5 rounded-lg text-xs text-white">
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="number" id="duration" required min="60" value="180" placeholder="Duración en Segundos (Mín 60)" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-white">
-                        <input type="url" id="audio_url" placeholder="URL Directa del Audio o Video" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-white">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <input type="text" id="genre" placeholder="Género (ej. Post-Punk)" class="bg-[#08080a] border border-[#1e1e24] p-2.5 rounded-lg text-xs text-white">
+                        <input type="number" id="duration" value="180" placeholder="Duración (seg)" class="bg-[#08080a] border border-[#1e1e24] p-2.5 rounded-lg text-xs text-white">
+                        <input type="url" id="audio_url" placeholder="URL Audio/Video" class="bg-[#08080a] border border-[#1e1e24] p-2.5 rounded-lg text-xs text-white">
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="url" id="cover_url" placeholder="URL Cover Estático HD" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-white">
-                        <input type="url" id="animated_cover" placeholder="URL Cover Animado (GIF/MP4)" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-white">
-                        <input type="url" id="artist_photo" placeholder="URL Foto del Artista" class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-white">
-                    </div>
-                    <textarea id="lyrics" placeholder="Letras Sincronizadas [00:10.00]..." class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-xs text-white h-24 font-mono"></textarea>
-                    
-                    <button type="submit" class="w-full py-3 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 font-bold text-white text-xs rounded-xl shadow-lg transition">
-                        Guardar canción manualmente en Supabase
-                    </button>
+                    <input type="url" id="cover_url" placeholder="URL Carátula HD" class="w-full bg-[#08080a] border border-[#1e1e24] p-2.5 rounded-lg text-xs text-white">
+                    <textarea id="lyrics" placeholder="Letra..." class="w-full bg-[#08080a] border border-[#1e1e24] p-2.5 rounded-lg text-xs text-white h-20"></textarea>
+                    <button type="submit" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 font-semibold text-black text-xs rounded-lg transition">Guardar</button>
                 </form>
             </div>
         </section>
 
     </main>
 
-    <!-- REPRODUCTOR DE MÚSICA FLOTANTE INFERIOR -->
-    <div id="player-bar" class="fixed bottom-0 left-0 right-0 z-50 bg-[#07070e]/95 backdrop-blur-2xl border-t border-slate-800 px-4 py-3 shadow-2xl transition-transform transform translate-y-full">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-            <!-- Pista actual -->
-            <div class="flex items-center space-x-3 w-full md:w-1/3">
-                <div class="relative w-12 h-12 flex-shrink-0">
-                    <img id="player-cover" src="" class="w-full h-full object-cover rounded-full border border-cyan-500/40 spinning-vinyl paused-vinyl">
-                    <div class="absolute inset-0 rounded-full border-2 border-black/40"></div>
-                </div>
-                <div class="overflow-hidden">
-                    <h4 id="player-title" class="font-bold text-white text-xs truncate">Ninguna canción</h4>
-                    <p id="player-artist" class="text-[11px] text-cyan-400 truncate">Selecciona una pista</p>
+    <!-- REPRODUCTOR DE MÚSICA BARRA INFERIOR -->
+    <div id="player-bar" class="fixed bottom-0 left-0 right-0 z-50 bg-[#0f0f13] border-t border-[#1e1e24] px-6 py-3 transition-all transform translate-y-full">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <!-- Portada e Info -->
+            <div class="flex items-center space-x-3 w-1/3">
+                <img id="player-cover" src="" class="w-10 h-10 object-cover rounded-md bg-zinc-900 border border-zinc-800">
+                <div class="truncate">
+                    <h4 id="player-title" class="font-semibold text-white text-xs truncate">Título</h4>
+                    <p id="player-artist" class="text-[11px] text-zinc-400 truncate">Artista</p>
                 </div>
             </div>
 
-            <!-- Controles centrales -->
-            <div class="flex flex-col items-center w-full md:w-1/3 space-y-1">
-                <div class="flex items-center space-x-4">
-                    <button onclick="togglePlay()" id="btn-play" class="w-10 h-10 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black flex items-center justify-center transition shadow-lg shadow-cyan-500/30">
-                        <i class="fa-solid fa-play text-sm"></i>
-                    </button>
-                    <button onclick="openLyricsModal()" class="text-slate-400 hover:text-cyan-400 text-xs font-mono flex items-center gap-1 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
-                        <i class="fa-solid fa-align-center"></i> Letra
-                    </button>
-                </div>
+            <!-- Controles -->
+            <div class="flex items-center justify-center space-x-3 w-1/3">
+                <button onclick="togglePlay()" id="btn-play" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition">
+                    <i class="fa-solid fa-play text-xs ml-0.5"></i>
+                </button>
+                <button onclick="openLyrics()" class="text-xs text-zinc-400 hover:text-white px-2.5 py-1 rounded bg-[#181820] border border-[#262630]">
+                    Letra
+                </button>
             </div>
 
-            <!-- Botones adicionales / Fuente -->
-            <div class="hidden md:flex items-center justify-end w-1/3 space-x-3">
-                <a id="player-source-link" href="#" target="_blank" class="text-xs text-slate-400 hover:text-white bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 flex items-center gap-1.5">
-                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Ver Fuente Original
+            <!-- Link Original -->
+            <div class="flex items-center justify-end w-1/3">
+                <a id="player-link" href="#" target="_blank" class="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i> YouTube
                 </a>
             </div>
         </div>
     </div>
 
     <!-- MODAL DE LETRAS -->
-    <div id="lyrics-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
-        <div class="cyber-card max-w-lg w-full p-6 rounded-2xl relative space-y-4">
-            <button onclick="closeLyricsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
-                <i class="fa-solid fa-xmark"></i>
+    <div id="lyrics-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="app-card max-w-md w-full p-6 rounded-xl relative space-y-3">
+            <button onclick="closeLyrics()" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-sm"></i>
             </button>
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-microphone text-cyan-400"></i> Letra de la Canción
-            </h3>
-            <div id="modal-lyrics-body" class="font-mono text-xs text-slate-300 max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed bg-slate-950 p-4 rounded-xl border border-slate-800"></div>
+            <h3 class="text-sm font-bold text-white">Letra de la canción</h3>
+            <div id="lyrics-content" class="text-xs font-mono text-zinc-300 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed bg-[#08080a] p-3 rounded-lg border border-[#1e1e24]"></div>
         </div>
     </div>
 
-    <!-- REPRODUCTOR OCULTO PARA CONTENIDO AUDIO -->
     <iframe id="audio-iframe" class="hidden" allow="autoplay"></iframe>
 
     <script>
-        let allSongs = [];
-        let currentFilter = '';
+        let songs = [];
+        let currentGenre = '';
         let currentSong = null;
         let isPlaying = false;
 
-        const targetArtistsList = [
-            "Depresión Sonora", "Eve", "Laufey", "Grupo Frontera", 
-            "Al Hars", "Kenshi Yonezu", "Arctic Monkeys", "Joji", "Ado", "Yoasobi", "Cuarteto de Nos"
+        const genresList = [
+            "Post-Punk", "Indie Rock", "Synthwave", "City Pop", 
+            "Lofi Beats", "Anime OST", "J-Pop Hits", "Alt Rock", 
+            "Latin Indie", "Pop Punk", "Shoegaze", "Darkwave", "K-Pop"
         ];
 
-        function renderArtistFilters() {
-            const container = document.getElementById('artist-filters');
-            const buttons = targetArtistsList.map(artist => `
-                <button onclick="setArtistFilter('${artist}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/90 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-400 transition whitespace-nowrap border border-slate-800">${artist}</button>
+        function renderGenreFilters() {
+            const container = document.getElementById('genre-filters');
+            const buttons = genresList.map(g => `
+                <button onclick="setGenreFilter('${g}')" class="genre-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-[#121216] hover:bg-[#1c1c24] border border-[#1e1e24] text-zinc-300 hover:text-white whitespace-nowrap transition">${g}</button>
             `).join('');
             container.innerHTML += buttons;
         }
 
         function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
 
-            document.getElementById('btn-catalog').className = tabId === 'catalog' ? 'px-4 py-2 text-xs font-bold rounded-lg transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-lg shadow-cyan-500/20' : 'px-4 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition-all';
-            document.getElementById('btn-docs').className = tabId === 'docs' ? 'px-4 py-2 text-xs font-bold rounded-lg transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-lg shadow-cyan-500/20' : 'px-4 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition-all';
+            document.getElementById('btn-catalog').className = tabId === 'catalog' ? 'px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-zinc-100 text-black' : 'px-3.5 py-1.5 text-xs font-semibold rounded-lg text-zinc-400 hover:text-white';
+            document.getElementById('btn-docs').className = tabId === 'docs' ? 'px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-zinc-100 text-black' : 'px-3.5 py-1.5 text-xs font-semibold rounded-lg text-zinc-400 hover:text-white';
         }
 
         function toggleAdmin() {
-            const adminTab = document.getElementById('admin');
-            adminTab.classList.toggle('hidden-admin');
-            if (!adminTab.classList.contains('hidden-admin')) switchTab('admin');
+            const admin = document.getElementById('admin');
+            admin.classList.toggle('hidden-admin');
+            if (!admin.classList.contains('hidden-admin')) switchTab('admin');
         }
 
-        async function loadCatalog() {
+        async function fetchSongs() {
             try {
                 const res = await fetch('/api/songs');
-                allSongs = await res.json();
-                document.getElementById('song-count').innerText = allSongs.length || 0;
-                displaySongs(allSongs);
+                songs = await res.json();
+                document.getElementById('song-count').innerText = songs.length || 0;
+                renderSongs(songs);
             } catch (e) {
-                document.getElementById('song-count').innerText = "0";
-                document.getElementById('catalog-grid').innerHTML = `<p class="col-span-full text-center text-slate-500 py-12">Conectando con el servidor...</p>`;
+                document.getElementById('catalog-grid').innerHTML = `<p class="col-span-full text-center text-zinc-500 py-12 text-xs">Error conectando con el servidor...</p>`;
             }
         }
 
-        function displaySongs(songs) {
+        function renderSongs(data) {
             const grid = document.getElementById('catalog-grid');
-            if (!songs || songs.length === 0) {
-                grid.innerHTML = `<p class="col-span-full text-center text-slate-500 py-12">No hay canciones disponibles.</p>`;
+            if (!data || data.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-zinc-500 py-12 text-xs">No hay canciones que coincidan.</p>`;
                 return;
             }
 
-            grid.innerHTML = songs.map(song => {
-                const displayCover = song.cover_url || song.artist_photo || 'https://via.placeholder.com/400';
-                return `
-                <div class="cyber-card rounded-2xl overflow-hidden transition group flex flex-col justify-between p-3">
-                    <div class="relative aspect-square rounded-xl bg-slate-950 overflow-hidden mb-3">
-                        <img src="${displayCover}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
-                        <button onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")})' class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                            <div class="w-12 h-12 rounded-full bg-cyan-500 text-black flex items-center justify-center shadow-lg shadow-cyan-500/50 transform scale-75 group-hover:scale-100 transition duration-300">
-                                <i class="fa-solid fa-play text-lg ml-0.5"></i>
+            grid.innerHTML = data.map(song => `
+                <div class="app-card rounded-xl p-2.5 flex flex-col justify-between group cursor-pointer" onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")})'>
+                    <div class="relative aspect-square rounded-lg bg-zinc-900 overflow-hidden mb-2.5">
+                        <img src="${song.cover_url || 'https://via.placeholder.com/300'}" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <div class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center shadow-lg">
+                                <i class="fa-solid fa-play text-xs ml-0.5"></i>
                             </div>
-                        </button>
+                        </div>
                     </div>
                     <div>
-                        <h4 class="font-bold text-white text-xs line-clamp-1 group-hover:text-cyan-400 transition">${song.title}</h4>
-                        <p class="text-[11px] text-slate-400 mt-0.5">${song.artist}</p>
+                        <h4 class="font-semibold text-white text-xs line-clamp-1">${song.title}</h4>
+                        <p class="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">${song.artist}</p>
                     </div>
-                    <div class="flex items-center justify-between text-[10px] text-slate-500 font-mono mt-3 pt-2 border-t border-slate-800/80">
-                        <span><i class="fa-regular fa-clock mr-1"></i>${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}</span>
-                        <button onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")})' class="text-cyan-400 hover:underline">Escuchar</button>
+                    <div class="mt-2 pt-2 border-t border-[#1e1e24] flex items-center justify-between text-[10px] text-zinc-500">
+                        <span class="bg-[#181820] px-1.5 py-0.5 rounded border border-[#22222a] text-zinc-400">${song.genre || 'Indie'}</span>
+                        <span>${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}</span>
                     </div>
-                </div>`;
-            }).join('');
+                </div>
+            `).join('');
         }
 
         function playTrack(song) {
             currentSong = song;
             document.getElementById('player-title').innerText = song.title;
             document.getElementById('player-artist').innerText = song.artist;
-            document.getElementById('player-cover').src = song.cover_url || song.artist_photo || 'https://via.placeholder.com/100';
-            document.getElementById('player-source-link').href = song.audio_url || '#';
+            document.getElementById('player-cover').src = song.cover_url || 'https://via.placeholder.com/100';
+            document.getElementById('player-link').href = song.audio_url || '#';
 
-            const playerBar = document.getElementById('player-bar');
-            playerBar.classList.remove('translate-y-full');
+            document.getElementById('player-bar').classList.remove('translate-y-full');
 
-            // Cargar iframe reproductor
             let embedUrl = song.audio_url;
             if (embedUrl.includes('youtube.com') || embedUrl.includes('youtu.be')) {
-                const videoId = embedUrl.split('v=')[1] || embedUrl.split('/').pop();
-                embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+                const id = embedUrl.split('v=')[1] || embedUrl.split('/').pop();
+                embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1`;
             }
             document.getElementById('audio-iframe').src = embedUrl;
 
             isPlaying = true;
-            updatePlayButton();
+            document.getElementById('btn-play').innerHTML = '<i class="fa-solid fa-pause text-xs"></i>';
         }
 
         function togglePlay() {
             isPlaying = !isPlaying;
-            updatePlayButton();
+            document.getElementById('btn-play').innerHTML = isPlaying ? '<i class="fa-solid fa-pause text-xs"></i>' : '<i class="fa-solid fa-play text-xs ml-0.5"></i>';
         }
 
-        function updatePlayButton() {
-            const btn = document.getElementById('btn-play');
-            const vinyl = document.getElementById('player-cover');
-            if (isPlaying) {
-                btn.innerHTML = '<i class="fa-solid fa-pause text-sm"></i>';
-                vinyl.classList.remove('paused-vinyl');
-            } else {
-                btn.innerHTML = '<i class="fa-solid fa-play text-sm"></i>';
-                vinyl.classList.add('paused-vinyl');
-            }
-        }
-
-        function openLyricsModal() {
+        function openLyrics() {
             if (!currentSong) return;
-            document.getElementById('modal-lyrics-body').innerText = currentSong.lyrics || "Letra no disponible.";
+            document.getElementById('lyrics-content').innerText = currentSong.lyrics || "Letra no disponible";
             document.getElementById('lyrics-modal').classList.remove('hidden');
         }
 
-        function closeLyricsModal() {
+        function closeLyrics() {
             document.getElementById('lyrics-modal').classList.add('hidden');
         }
 
-        function setArtistFilter(artist) {
-            currentFilter = artist;
+        function setGenreFilter(genre) {
+            currentGenre = genre;
             filterSongs();
         }
 
         function filterSongs() {
             const query = document.getElementById('search-input').value.toLowerCase();
-            const filtered = allSongs.filter(s => {
-                const matchesArtist = currentFilter ? s.artist.toLowerCase() === currentFilter.toLowerCase() : true;
-                const matchesSearch = s.title.toLowerCase().includes(query) || s.artist.toLowerCase().includes(query);
-                return matchesArtist && matchesSearch;
+            const filtered = songs.filter(s => {
+                const matchGenre = currentGenre ? (s.genre || '').toLowerCase() === currentGenre.toLowerCase() : true;
+                const matchQuery = s.title.toLowerCase().includes(query) || s.artist.toLowerCase().includes(query) || (s.genre || '').toLowerCase().includes(query);
+                return matchGenre && matchQuery;
             });
-            displaySongs(filtered);
+            renderSongs(filtered);
         }
 
         document.getElementById('upload-form').addEventListener('submit', async (e) => {
@@ -401,11 +317,10 @@
             const payload = {
                 title: document.getElementById('title').value,
                 artist: document.getElementById('artist').value,
+                genre: document.getElementById('genre').value,
                 duration: parseInt(document.getElementById('duration').value),
                 audio_url: document.getElementById('audio_url').value,
                 cover_url: document.getElementById('cover_url').value,
-                animated_cover: document.getElementById('animated_cover').value,
-                artist_photo: document.getElementById('artist_photo').value,
                 lyrics: document.getElementById('lyrics').value
             };
 
@@ -416,14 +331,14 @@
             });
 
             if (res.ok) {
-                alert('Canción guardada manualmente');
+                alert('Guardado con éxito');
                 e.target.reset();
-                loadCatalog();
+                fetchSongs();
             }
         });
 
-        renderArtistFilters();
-        loadCatalog();
+        renderGenreFilters();
+        fetchSongs();
     </script>
 </body>
 </html>

@@ -18,23 +18,50 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Lista ampliada de Artistas para catálogo masivo
-const targetArtists = [
-    "Depresión Sonora", "Eve", "Laufey", "Grupo Frontera", "Al Hars", 
-    "Kenshi Yonezu", "Arctic Monkeys", "Joji", "Ado", "Yoasobi", "Cuarteto de Nos"
+// Categorías, Géneros y Artistas objetivo para superar las 1,000 canciones
+const searchTargets = [
+    // Géneros y Estilos
+    { name: "Post-Punk", query: "Post Punk indie songs official audio" },
+    { name: "Indie Rock", query: "Indie Rock hits playlist audio" },
+    { name: "Synthwave", query: "Synthwave retrowave 80s full track" },
+    { name: "City Pop", query: "Japanese City Pop 80s track" },
+    { name: "Lofi Beats", query: "Lofi hip hop beats relaxing track" },
+    { name: "Anime OST", query: "Anime opening full song official" },
+    { name: "J-Pop Hits", query: "J-Pop top songs audio" },
+    { name: "Alt Rock", query: "Alternative Rock top tracks" },
+    { name: "Latin Indie", query: "Indie en espanol canciones top" },
+    { name: "Pop Punk", query: "Pop punk classic songs audio" },
+    { name: "Shoegaze", query: "Shoegaze dream pop tracks" },
+    { name: "Darkwave", query: "Darkwave goth tracks" },
+    { name: "K-Pop", query: "K-Pop hits audio official" },
+    
+    // Artistas Específicos
+    { name: "Depresión Sonora", query: "Depresion Sonora canciones audio" },
+    { name: "Eve", query: "Eve official music audio" },
+    { name: "Laufey", query: "Laufey songs official" },
+    { name: "Grupo Frontera", query: "Grupo Frontera canciones" },
+    { name: "Kenshi Yonezu", query: "Kenshi Yonezu songs" },
+    { name: "Arctic Monkeys", query: "Arctic Monkeys tracks" },
+    { name: "Joji", query: "Joji audio track" },
+    { name: "Ado", query: "Ado official songs" },
+    { name: "Yoasobi", query: "Yoasobi full tracks" },
+    { name: "Cuarteto de Nos", query: "Cuarteto de Nos canciones" },
+    { name: "The Strokes", query: "The Strokes full tracks" },
+    { name: "Gorillaz", query: "Gorillaz tracks" },
+    { name: "Tame Impala", query: "Tame Impala tracks" }
 ];
 
 // Anti-sleep Ping para Render cada 13 min
 setInterval(async () => {
     try {
         await axios.get(`${RENDER_URL}/api/health`);
-        console.log('⚡ Ping interno enviado a Render');
+        console.log('⚡ Ping de reactivación enviado');
     } catch (error) {
-        console.error('Error en ping interno:', error.message);
+        console.error('Error en ping:', error.message);
     }
 }, 13 * 60 * 1000);
 
-app.get('/api/health', (req, res) => res.status(200).send('OK - Sekai Server Live'));
+app.get('/api/health', (req, res) => res.status(200).send('OK - Server Live'));
 
 // Búsqueda de letras sincronizadas en LRCLIB
 async function searchLyrics(title, artist) {
@@ -42,123 +69,99 @@ async function searchLyrics(title, artist) {
         const cleanTitle = title.replace(/\(.*\)|\[.*\]/g, '').trim();
         const response = await axios.get(`https://lrclib.net/api/search`, {
             params: { track_name: cleanTitle, artist_name: artist },
-            timeout: 4000
+            timeout: 3000
         });
         if (response.data && response.data.length > 0) {
             const match = response.data[0];
             return match.syncedLyrics || match.plainLyrics || null;
         }
-    } catch (e) {
-        // Fallback silencioso
-    }
+    } catch (e) {}
     return null;
 }
 
-// Búsqueda de Carátulas HD e Info de Artista en iTunes
-async function searchArtworkAndPhoto(title, artist) {
+// Búsqueda de carátulas en iTunes HD
+async function searchArtwork(title, artist) {
     try {
         const cleanTitle = title.replace(/\(.*\)|\[.*\]/g, '').trim();
         const res = await axios.get(`https://itunes.apple.com/search`, {
             params: { term: `${artist} ${cleanTitle}`, entity: 'song', limit: 1 },
-            timeout: 4000
+            timeout: 3000
         });
         if (res.data.results && res.data.results.length > 0) {
             const track = res.data.results[0];
-            const highResCover = track.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '1000x1000bb') : null;
-            return {
-                cover_url: highResCover,
-                artist_photo: track.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '600x600bb') : null
-            };
+            return track.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '800x800bb') : null;
         }
-    } catch (e) {
-        // Fallback silencioso
-    }
-    return { cover_url: null, artist_photo: null };
+    } catch (e) {}
+    return null;
 }
 
-// Ingesta Masiva por Artista (Hasta 35 canciones por artista)
-async function scrapeArtistMusic(artist) {
-    console.log(`🔍 Búsqueda profunda para: ${artist}...`);
-    const searchQueries = [
-        `${artist} official audio`,
-        `${artist} top songs`,
-        `${artist} discografía track`
-    ];
+// Ingesta Masiva por Géneros / Objetivos (Meta > 1000 canciones)
+async function runMassiveScraper() {
+    console.log('🚀 Iniciando escaneo masivo por géneros y artistas (Objetivo: 1,000+ canciones)...');
 
-    for (const query of searchQueries) {
+    for (const target of searchTargets) {
         try {
-            const r = await ytSearch(query);
+            console.log(`🔎 Escaneando categoría: [${target.name}]...`);
+            const r = await ytSearch(target.query);
             const videos = r.videos || [];
 
-            for (const video of videos.slice(0, 12)) {
+            for (const video of videos.slice(0, 20)) { // 20 canciones por categoría
                 const durationSeconds = video.duration.seconds;
 
-                // FILTRO ESTRICTO: Descartar audios menores a 60 segundos
-                if (durationSeconds < 60) {
-                    console.log(`⏩ Omitida (<60s): ${video.title}`);
-                    continue;
-                }
+                // Descartar audios de menos de 60 segundos
+                if (durationSeconds < 60) continue;
 
                 const cleanTitle = video.title
                     .replace(/\[.*\]|\(.*\)/g, '')
-                    .replace(/Official Audio|Official Music Video|Video Oficial|Lyric Video/gi, '')
+                    .replace(/Official Audio|Official Music Video|Video Oficial|Lyric Video|Audio/gi, '')
                     .trim();
 
-                // Verificar si ya existe en Supabase
+                const artistName = video.author.name.replace('VEVO', '').replace('- Topic', '').trim() || target.name;
+
+                // Verificar duplos en DB
                 const { data: existing } = await supabase
                     .from('songs')
                     .select('id')
                     .ilike('title', `%${cleanTitle}%`)
                     .maybeSingle();
 
-                if (existing) {
-                    continue;
-                }
+                if (existing) continue;
 
-                const artwork = await searchArtworkAndPhoto(cleanTitle, artist);
-                const lyrics = await searchLyrics(cleanTitle, artist);
+                const coverUrl = await searchArtwork(cleanTitle, artistName);
+                const lyrics = await searchLyrics(cleanTitle, artistName);
 
                 const songData = {
                     title: cleanTitle || video.title,
-                    artist: artist,
+                    artist: artistName,
+                    genre: target.name,
                     duration: durationSeconds,
                     source: 'youtube',
-                    audio_url: video.url, // URL de fuente
-                    cover_url: artwork.cover_url || video.thumbnail,
-                    animated_cover: null,
-                    lyrics: lyrics || "[00:00.00] Letra no disponible en sincronía",
-                    artist_photo: artwork.artist_photo || video.thumbnail
+                    audio_url: video.url,
+                    cover_url: coverUrl || video.thumbnail,
+                    lyrics: lyrics || "[00:00.00] Letra no disponible"
                 };
 
                 const { error } = await supabase.from('songs').insert([songData]);
-                if (error) console.error(`❌ Error al insertar ${cleanTitle}:`, error.message);
-                else console.log(`✅ Agregada [${artist}]: ${cleanTitle}`);
+                if (!error) console.log(`+ Agregada [${target.name}]: ${cleanTitle}`);
             }
         } catch (e) {
-            console.error(`Error en query "${query}":`, e.message);
+            console.error(`Error escaneando ${target.name}:`, e.message);
         }
     }
+    console.log('🎉 Escaneo masivo finalizado.');
 }
 
-async function runScraperWorkflow() {
-    console.log('🚀 Iniciando escaneo masivo (>200 canciones objetivo)...');
-    for (const artist of targetArtists) {
-        await scrapeArtistMusic(artist);
-    }
-    console.log('🎉 Escaneo completado.');
-}
-
-// CRON JOB: Cambiado a CADA 2 HORAS
+// Cron Job: Ejecuta el escaneo automáticamente cada 2 horas
 cron.schedule('0 */2 * * *', () => {
-    console.log('⏰ Ejecutando escaneo programado de 2 horas...');
-    runScraperWorkflow();
+    console.log('⏰ Ejecutando escaneo programado...');
+    runMassiveScraper();
 });
 
-// ENDPOINTS API
+// Rutas de API
 app.get('/api/songs', async (req, res) => {
     try {
-        let query = supabase.from('songs').select('*').order('id', { ascending: false });
-        if (req.query.artist) query = query.ilike('artist', `%${req.query.artist}%`);
+        let query = supabase.from('songs').select('*').order('id', { ascending: false }).limit(1000);
+        if (req.query.genre) query = query.ilike('genre', `%${req.query.genre}%`);
         if (req.query.search) query = query.or(`title.ilike.%${req.query.search}%,artist.ilike.%${req.query.search}%`);
         
         const { data, error } = await query;
@@ -171,21 +174,18 @@ app.get('/api/songs', async (req, res) => {
 
 app.post('/api/upload', async (req, res) => {
     try {
-        const { title, artist, duration, audio_url, cover_url, animated_cover, lyrics, artist_photo } = req.body;
-        
-        if (!title || !artist) return res.status(400).json({ error: "Título y artista obligatorios." });
-        if (duration && parseInt(duration) < 60) return res.status(400).json({ error: "Debe durar al menos 60s." });
+        const { title, artist, duration, audio_url, cover_url, lyrics, genre } = req.body;
+        if (!title || !artist) return res.status(400).json({ error: "Título y artista requeridos" });
 
         const songData = {
             title,
             artist,
+            genre: genre || 'Indie',
             duration: parseInt(duration) || 180,
             source: 'manual',
             audio_url: audio_url || '',
             cover_url: cover_url || '',
-            animated_cover: animated_cover || null,
-            lyrics: lyrics || null,
-            artist_photo: artist_photo || null
+            lyrics: lyrics || null
         };
 
         const { data, error } = await supabase.from('songs').insert([songData]).select();
@@ -197,6 +197,6 @@ app.post('/api/upload', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Sekai Music Server corriendo en puerto ${PORT}`);
-    runScraperWorkflow(); // Ejecución inmediata al iniciar
+    console.log(`Server listo en puerto ${PORT}`);
+    runMassiveScraper(); // Ejecución masiva inicial
 });
