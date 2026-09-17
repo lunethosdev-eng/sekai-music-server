@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sekai Music Server</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .hidden-admin { display: none; }
+    </style>
+</head>
+<body class="min-h-screen font-sans">
+    <nav class="bg-slate-900 border-b border-slate-700 p-4">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <!-- Doble clic aquí revela el menú secreto -->
+            <h1 class="text-2xl font-bold text-indigo-400 cursor-pointer select-none" ondblclick="toggleAdmin()">Sekai API</h1>
+            <div class="space-x-4">
+                <button onclick="switchTab('catalog')" class="hover:text-indigo-300">Catálogo</button>
+                <button onclick="switchTab('docs')" class="hover:text-indigo-300">Documentación</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto p-6 mt-8">
+        <!-- SECCIÓN: CATÁLOGO -->
+        <section id="catalog" class="tab-content active">
+            <h2 class="text-3xl font-bold mb-6">Catálogo de Canciones</h2>
+            <div class="bg-slate-800 p-4 rounded-lg flex justify-between items-center mb-6">
+                <span>Total de pistas disponibles:</span>
+                <span class="text-2xl font-bold text-indigo-400" id="song-count">Cargando...</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="catalog-grid">
+                <!-- Las canciones se cargarán aquí vía JS -->
+            </div>
+        </section>
+
+        <!-- SECCIÓN: DOCUMENTACIÓN -->
+        <section id="docs" class="tab-content">
+            <h2 class="text-3xl font-bold mb-6">Documentación para Desarrolladores</h2>
+            <p class="mb-4 text-slate-400">Conecta tu app a Sekai Music Server usando nuestros endpoints.</p>
+            
+            <div class="bg-slate-800 p-6 rounded-lg mb-6 border border-slate-700">
+                <h3 class="text-xl font-bold text-indigo-300 mb-2">Obtener Catálogo</h3>
+                <code class="bg-slate-900 p-2 rounded block mb-2">GET /api/songs</code>
+                <p class="text-sm text-slate-400">Retorna un JSON con todas las canciones disponibles, incluyendo metadata, lyrics sincronizadas y covers animados.</p>
+            </div>
+            
+            <div class="bg-slate-800 p-6 rounded-lg border border-slate-700">
+                <h3 class="text-xl font-bold text-indigo-300 mb-2">Características del Servicio</h3>
+                <ul class="list-disc list-inside text-sm text-slate-400 space-y-2">
+                    <li>Scraping automatizado de SoundCloud y YouTube (Fallback).</li>
+                    <li>Filtrado estricto: Se descartan audios menores a 60 segundos (evita shorts/previews).</li>
+                    <li>Soporte para covers estándar y animados.</li>
+                    <li>Actualización automática cada 4 horas para no saturar el servidor.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- MENÚ SECRETO: SUBIDA MANUAL -->
+        <section id="admin" class="tab-content hidden-admin">
+            <h2 class="text-3xl font-bold mb-6 text-red-400">🛠️ Terminal Secreta - Subida Manual</h2>
+            <form id="upload-form" class="bg-slate-800 p-6 rounded-lg border border-red-900/50 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" id="title" placeholder="Título" class="bg-slate-900 p-3 rounded w-full border border-slate-700">
+                    <input type="text" id="artist" placeholder="Artista (ej. Eve, Laufey)" class="bg-slate-900 p-3 rounded w-full border border-slate-700">
+                    <input type="number" id="duration" placeholder="Duración (segundos)" class="bg-slate-900 p-3 rounded w-full border border-slate-700">
+                    <input type="url" id="audio_url" placeholder="URL Directa del Audio" class="bg-slate-900 p-3 rounded w-full border border-slate-700">
+                </div>
+                <input type="url" id="cover_url" placeholder="URL del Cover / Cover Animado" class="bg-slate-900 p-3 rounded w-full border border-slate-700">
+                <textarea id="lyrics" placeholder="Lyrics sincronizadas [00:00.00]..." class="bg-slate-900 p-3 rounded w-full border border-slate-700 h-32"></textarea>
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded w-full transition">Subir al Supabase</button>
+            </form>
+        </section>
+    </main>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function toggleAdmin() {
+            const adminTab = document.getElementById('admin');
+            adminTab.classList.toggle('hidden-admin');
+            if (!adminTab.classList.contains('hidden-admin')) switchTab('admin');
+        }
+
+        // Cargar Catálogo
+        async function loadCatalog() {
+            try {
+                // En local, usa /api/songs. Modificado para no romper el front si no hay DB aún.
+                const res = await fetch('/api/songs');
+                const songs = await res.json();
+                document.getElementById('song-count').innerText = songs.length || 0;
+                
+                const grid = document.getElementById('catalog-grid');
+                grid.innerHTML = (songs || []).map(song => `
+                    <div class="bg-slate-800 rounded-lg overflow-hidden border border-slate-700">
+                        <img src="${song.cover_url || 'https://via.placeholder.com/400x400'}" class="w-full h-48 object-cover">
+                        <div class="p-4">
+                            <h4 class="font-bold text-lg">${song.title}</h4>
+                            <p class="text-indigo-400">${song.artist}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                document.getElementById('song-count').innerText = "0";
+                document.getElementById('catalog-grid').innerHTML = "<p class='text-slate-500'>Esperando conexión a Supabase...</p>";
+            }
+        }
+
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                title: document.getElementById('title').value,
+                artist: document.getElementById('artist').value,
+                duration: parseInt(document.getElementById('duration').value),
+                audio_url: document.getElementById('audio_url').value,
+                cover_url: document.getElementById('cover_url').value,
+                lyrics: document.getElementById('lyrics').value
+            };
+
+            if(data.duration < 60) return alert("Error: La canción dura menos de 60s.");
+
+            await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            alert('Canción subida con éxito');
+            e.target.reset();
+        });
+
+        loadCatalog();
+    </script>
+</body>
+</html>
