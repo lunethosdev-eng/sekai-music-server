@@ -18,40 +18,36 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-let soundcloudClientId = null;
+let soundcloudClientId = 'iZea6V13B2S91I1B1i0x90nI0N6N9p6a';
 
-// Obtener Client ID público de SoundCloud dinámicamente
+// Obtener Client ID dinámico de SoundCloud
 async function getSoundCloudClientId() {
-    if (soundcloudClientId) return soundcloudClientId;
     try {
         const pageRes = await axios.get('https://soundcloud.com', {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+            timeout: 5000
         });
         const jsUrls = pageRes.data.match(/https:\/\/a-v2\.sndcdn\.com\/assets\/[a-zA-Z0-9-]+\.js/g) || [];
-        for (const url of jsUrls.slice(-3)) {
-            const jsRes = await axios.get(url);
+        for (const url of jsUrls.slice(-4)) {
+            const jsRes = await axios.get(url, { timeout: 5000 });
             const match = jsRes.data.match(/client_id\s*:\s*["']([a-zA-Z0-9]{32})["']/);
             if (match && match[1]) {
                 soundcloudClientId = match[1];
-                console.log('✅ Token SoundCloud obtenido:', soundcloudClientId);
                 return soundcloudClientId;
             }
         }
-    } catch (e) {
-        console.error('Error obteniendo token SoundCloud:', e.message);
-    }
-    return null;
+    } catch (e) {}
+    return soundcloudClientId;
 }
 
-// Búsqueda en SoundCloud (PRINCIPAL)
+// Búsqueda masiva en SoundCloud (Retorna 50 resultados)
 async function searchSoundCloud(query) {
     try {
         const clientId = await getSoundCloudClientId();
-        if (!clientId) return [];
-
-        const url = `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=25`;
+        const url = `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=50`;
         const res = await axios.get(url, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+            timeout: 6000
         });
 
         if (res.data && res.data.collection) {
@@ -62,16 +58,14 @@ async function searchSoundCloud(query) {
                 source: 'soundcloud',
                 audio_url: t.permalink_url,
                 cover_url: t.artwork_url ? t.artwork_url.replace('-large', '-t500x500') : (t.user ? t.user.avatar_url : null)
-            })).filter(t => t.duration >= 60); // Omitir audios < 60s
+            })).filter(t => t.duration >= 45 && t.audio_url);
         }
-    } catch (e) {
-        console.error(`SoundCloud error (${query}):`, e.message);
-    }
+    } catch (e) {}
     return [];
 }
 
-// Búsqueda en YouTube (BACKUP)
-async function searchYouTubeBackup(query) {
+// Búsqueda masiva en YouTube (Retorna 40 resultados)
+async function searchYouTube(query) {
     try {
         const r = await ytSearch(query);
         const videos = r.videos || [];
@@ -82,138 +76,149 @@ async function searchYouTubeBackup(query) {
             source: 'youtube',
             audio_url: v.url,
             cover_url: v.thumbnail
-        })).filter(v => v.duration >= 60);
-    } catch (e) {
-        console.error(`YouTube Backup error (${query}):`, e.message);
-    }
+        })).filter(v => v.duration >= 45 && v.audio_url);
+    } catch (e) {}
     return [];
 }
 
-// Búsqueda de Letras Sincronizadas
-async function searchLyrics(title, artist) {
-    try {
-        const cleanTitle = title.replace(/\(.*\)|\[.*\]/g, '').trim();
-        const response = await axios.get(`https://lrclib.net/api/search`, {
-            params: { track_name: cleanTitle, artist_name: artist },
-            timeout: 2500
-        });
-        if (response.data && response.data.length > 0) {
-            const match = response.data[0];
-            return match.syncedLyrics || match.plainLyrics || null;
-        }
-    } catch (e) {}
-    return null;
-}
-
-// Lista masiva de objetivos de búsqueda
+// BÚSQUEDAS TARGET PARA SUPERAR RÁPIDAMENTE LAS 1000+ CANCIONES
 const searchTargets = [
-    // ARTISTAS SOLICITADOS
-    { name: "Eve", query: "Eve ooo0eve0ooo official music" },
-    { name: "Eve", query: "Eve Kaikai Kitan Dramaturgy Anoko Secret" },
-    { name: "Trío Los Panchos", query: "Trio Los Panchos boleros clasicos" },
-    { name: "Trío Los Panchos", query: "Trio Los Panchos Si tu me dices ven Sabor a mi" },
+    // EVE (@ooo0eve0ooo)
+    { genre: "Eve", query: "Eve ooo0eve0ooo Kaikai Kitan" },
+    { genre: "Eve", query: "Eve Dramaturgy Fight Song" },
+    { genre: "Eve", query: "Eve Anoko Secret Outsider" },
+    { genre: "Eve", query: "Eve Bokura no Mai Gunjo Sanka" },
+    { genre: "Eve", query: "Eve official music audio" },
 
-    // OTROS ARTISTAS Y GÉNEROS
-    { name: "Depresión Sonora", query: "Depresion Sonora canciones" },
-    { name: "Laufey", query: "Laufey jazz indie tracks" },
-    { name: "Post-Punk", query: "Post-Punk indie Russian Spanish songs" },
-    { name: "City Pop", query: "80s Japanese City Pop hits" },
-    { name: "Boleros", query: "Boleros del recuerdo clasicos" },
-    { name: "Indie Rock", query: "Indie rock top hits" },
-    { name: "Synthwave", query: "Synthwave retrowave instrumental tracks" },
-    { name: "Lofi Beats", query: "Lofi hip hop beats relaxing" },
-    { name: "Shoegaze", query: "Shoegaze dream pop music" },
-    { name: "Darkwave", query: "Darkwave goth songs" },
-    { name: "Anime OST", query: "Anime opening themes full" },
-    { name: "J-Pop", query: "J-Pop top chart hits" },
-    { name: "Cuarteto de Nos", query: "Cuarteto de Nos canciones" },
-    { name: "Grupo Frontera", query: "Grupo Frontera canciones" },
-    { name: "The Strokes", query: "The Strokes tracks" },
-    { name: "Arctic Monkeys", query: "Arctic Monkeys full tracks" }
+    // TRÍO LOS PANCHOS
+    { genre: "Trío Los Panchos", query: "Trio Los Panchos Sabor a mi" },
+    { genre: "Trío Los Panchos", query: "Trio Los Panchos Si tu me dices ven" },
+    { genre: "Trío Los Panchos", query: "Trio Los Panchos Sin ti Caminemos" },
+    { genre: "Trío Los Panchos", query: "Trio Los Panchos Rayito de luna" },
+    { genre: "Trío Los Panchos", query: "Trio Los Panchos Historia de un amor" },
+    { genre: "Trío Los Panchos", query: "Trio Los Panchos boleros clasicos" },
+
+    // GÉNEROS Y OTROS ARTISTAS
+    { genre: "Cuarteto de Nos", query: "Cuarteto de Nos Porfiado Raro" },
+    { genre: "Cuarteto de Nos", query: "Cuarteto de Nos Jueves Bipolar" },
+    { genre: "Depresión Sonora", query: "Depresion Sonora canciones" },
+    { genre: "Laufey", query: "Laufey jazz indie tracks" },
+    { genre: "Post-Punk", query: "Post-Punk Russian Spanish" },
+    { genre: "Post-Punk", query: "Molchat Doma Ploho Human Tetris" },
+    { genre: "City Pop", query: "80s Japanese City Pop hits" },
+    { genre: "City Pop", query: "Miki Matsubara Tatsuro Yamashita Mariya Takeuchi" },
+    { genre: "Boleros", query: "Boleros del recuerdo clasicos" },
+    { genre: "Indie Rock", query: "Indie rock top hits classic" },
+    { genre: "Arctic Monkeys", query: "Arctic Monkeys full tracks" },
+    { genre: "The Strokes", query: "The Strokes full tracks" },
+    { genre: "Gorillaz", query: "Gorillaz official music tracks" },
+    { genre: "Tame Impala", query: "Tame Impala full tracks" },
+    { genre: "Radiohead", query: "Radiohead full album tracks" },
+    { genre: "Deftones", query: "Deftones tracks audio" },
+    { genre: "Cigarettes After Sex", query: "Cigarettes After Sex tracks" },
+    { genre: "TV Girl", query: "TV Girl songs album" },
+    { genre: "Mitski", query: "Mitski full songs" },
+    { genre: "Clairo", query: "Clairo indie songs" },
+    { genre: "Synthwave", query: "Synthwave retrowave 80s" },
+    { genre: "Lofi Beats", query: "Lofi hip hop relaxing beats" },
+    { genre: "Shoegaze", query: "Shoegaze dream pop tracks" },
+    { genre: "Darkwave", query: "Darkwave goth tracks" },
+    { genre: "Midwest Emo", query: "Midwest emo indie rock" },
+    { genre: "Anime OST", query: "Anime openings full official" },
+    { genre: "J-Pop", query: "J-Pop top chart hits Yoasobi Ado Kenshi Yonezu" },
+    { genre: "Phonk", query: "Drift phonk aggressive house" },
+    { genre: "Vaporwave", query: "Vaporwave aesthetic music" },
+    { genre: "Rock en Español", query: "Rock en espanol 80s 90s clasicos" },
+    { genre: "Pop Punk", query: "Pop punk 2000s classic hits" }
 ];
 
 // Anti-sleep Ping
 setInterval(async () => {
     try {
         await axios.get(`${RENDER_URL}/api/health`);
-        console.log('⚡ Ping enviando a Render...');
     } catch (e) {}
-}, 13 * 60 * 1000);
+}, 10 * 60 * 1000);
 
 app.get('/api/health', (req, res) => res.status(200).send('OK - Server Active'));
 
-// INGESTA MASIVA: SoundCloud (Principal) -> YouTube (Backup)
+// INGESTA MASIVA SIMULTÁNEA DESDE SOUNDCLOUD Y YOUTUBE
 async function runMassiveScraper() {
-    console.log('🚀 Iniciando escaneo masivo (SoundCloud -> YouTube Backup)...');
+    console.log('🚀 [SCRAPER] Iniciando descarga masiva desde SoundCloud + YouTube...');
 
-    for (const target of searchTargets) {
-        try {
-            console.log(`🔎 Escaneando: [${target.name}] - Query: "${target.query}"`);
-            
-            // 1. Intentar en SoundCloud primero
-            let tracks = await searchSoundCloud(target.query);
-            
-            // 2. Si SoundCloud devuelve menos de 5 resultados, usar YouTube como respaldo
-            if (!tracks || tracks.length < 5) {
-                console.log(`⚠️ SoundCloud con pocos resultados para ${target.name}. Activando backup de YouTube...`);
-                const ytTracks = await searchYouTubeBackup(target.query);
-                tracks = [...tracks, ...ytTracks];
-            }
+    try {
+        // Cargar URLs existentes en memoria
+        const { data: existingRows } = await supabase.from('songs').select('audio_url').range(0, 9999);
+        const existingUrls = new Set((existingRows || []).map(r => r.audio_url));
+        console.log(`📦 En base de datos actualmente: ${existingUrls.size} canciones.`);
 
-            for (const track of tracks) {
+        let insertedCount = 0;
+
+        for (const target of searchTargets) {
+            console.log(`🔎 Escaneando: [${target.genre}] -> "${target.query}"`);
+
+            // BÚSQUEDA SIMULTÁNEA EN AMBAS PLATAFORMAS
+            const [scTracks, ytTracks] = await Promise.all([
+                searchSoundCloud(target.query),
+                searchYouTube(target.query)
+            ]);
+
+            const allTracks = [...scTracks, ...ytTracks];
+            const batchToInsert = [];
+
+            for (const track of allTracks) {
+                if (existingUrls.has(track.audio_url)) continue;
+
+                existingUrls.add(track.audio_url);
+
                 const cleanTitle = track.title
                     .replace(/\[.*\]|\(.*\)/g, '')
                     .replace(/Official Video|Official Audio|Video Oficial|Lyric Video|Audio/gi, '')
                     .trim();
 
-                // Validación de duplicados por URL exacta
-                const { data: existing } = await supabase
-                    .from('songs')
-                    .select('id')
-                    .eq('audio_url', track.audio_url)
-                    .maybeSingle();
-
-                if (existing) continue;
-
-                const lyrics = await searchLyrics(cleanTitle, track.artist);
-
-                const songData = {
+                batchToInsert.push({
                     title: cleanTitle || track.title,
-                    artist: track.artist || target.name,
-                    genre: target.name,
+                    artist: track.artist || target.genre,
+                    genre: target.genre,
                     duration: track.duration,
                     source: track.source,
                     audio_url: track.audio_url,
                     cover_url: track.cover_url || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80',
-                    lyrics: lyrics || "[00:00.00] Letra no disponible"
-                };
-
-                const { error } = await supabase.from('songs').insert([songData]);
-                if (!error) console.log(`+ Agregada [${track.source.toUpperCase()}]: ${cleanTitle} - ${track.artist}`);
+                    lyrics: "[00:00.00] Letra no disponible"
+                });
             }
-        } catch (e) {
-            console.error(`Error escaneando ${target.name}:`, e.message);
+
+            // Guardar en lote en Supabase
+            if (batchToInsert.length > 0) {
+                const { error } = await supabase.from('songs').insert(batchToInsert);
+                if (!error) {
+                    insertedCount += batchToInsert.length;
+                    console.log(`✅ +${batchToInsert.length} canciones agregadas de [${target.genre}]. Total actual: ${existingUrls.size}`);
+                } else {
+                    console.error('Error insertando lote:', error.message);
+                }
+            }
         }
+
+        console.log(`🎉 [SCRAPER] Escaneo terminado. Se añadieron ${insertedCount} nuevas canciones. Total en DB: ${existingUrls.size}`);
+    } catch (e) {
+        console.error('Error en scraper masivo:', e.message);
     }
-    console.log('🎉 Proceso de ingesta finalizado.');
 }
 
-// Cron Job: Escaneo cada 2 horas
-cron.schedule('0 */2 * * *', () => {
+// PROGRAMACIÓN: Ejecutar CADA 15 MINUTOS ('*/15 * * * *')
+cron.schedule('*/15 * * * *', () => {
+    console.log('⏰ Ejecutando escaneo programado cada 15 minutos...');
     runMassiveScraper();
 });
 
-// ==========================================
-// UNIFIED SINGLE ENDPOINT FOR THE CATALOG
-// ==========================================
-// Este endpoint único devuelve todo el catálogo sin necesidad de múltiples llamadas
+// ENDPOINT ÚNICO CON RANGO HASTA 10,000 CANCIONES
 app.get('/api/v1/catalog', async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('songs')
             .select('*')
-            .order('id', { ascending: false })
-            .limit(2000);
+            .range(0, 9999) // Permite traer las +1000 canciones sin el límite por defecto
+            .order('id', { ascending: false });
 
         if (error) return res.status(500).json({ status: 'error', message: error.message });
 
@@ -228,13 +233,12 @@ app.get('/api/v1/catalog', async (req, res) => {
     }
 });
 
-// Compatibilidad con endpoint legacy
+// Endpoint de respaldo
 app.get('/api/songs', async (req, res) => {
-    const { data } = await supabase.from('songs').select('*').order('id', { ascending: false }).limit(2000);
+    const { data } = await supabase.from('songs').select('*').range(0, 9999).order('id', { ascending: false });
     res.json(data || []);
 });
 
-// Subida manual
 app.post('/api/upload', async (req, res) => {
     try {
         const { title, artist, duration, audio_url, cover_url, lyrics, genre } = req.body;
