@@ -18,45 +18,46 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Lista de artistas solicitados
 const targetArtists = [
     "Depresión Sonora", "Eve", "Laufey", "Grupo Frontera", "Al Hars", 
     "Kenshi Yonezu", "Arctic Monkeys", "Joji"
 ];
 
-// Anti-sleep para Render (Ping cada 13 min)
+// Anti-sleep Ping cada 13 minutos para Render
 setInterval(async () => {
     try {
         await axios.get(`${RENDER_URL}/api/health`);
-        console.log('Ping interno ejecutado');
+        console.log('⚡ Ping interno enviado para mantener activo Render');
     } catch (error) {
         console.error('Error en ping interno:', error.message);
     }
 }, 13 * 60 * 1000);
 
-app.get('/api/health', (req, res) => res.status(200).send('OK'));
+app.get('/api/health', (req, res) => res.status(200).send('OK - Sekai Music Server Active'));
 
-// Búsqueda de letras sincronizadas en LRCLIB
+// Buscar Lyrics en LRCLIB
 async function searchLyrics(title, artist) {
     try {
         const response = await axios.get(`https://lrclib.net/api/search`, {
-            params: { track_name: title, artist_name: artist }
+            params: { track_name: title, artist_name: artist },
+            timeout: 5000
         });
         if (response.data && response.data.length > 0) {
-            const bestMatch = response.data[0];
-            return bestMatch.syncedLyrics || bestMatch.plainLyrics || null;
+            const match = response.data[0];
+            return match.syncedLyrics || match.plainLyrics || null;
         }
     } catch (e) {
-        console.log(`Letras no encontradas para: ${title}`);
+        console.log(`Lyrics no encontradas para ${title}`);
     }
     return null;
 }
 
-// Búsqueda de Carátulas HD y Foto de Artista en iTunes API
+// Buscar Carátulas HD y Fotos de Artista en iTunes
 async function searchArtworkAndPhoto(title, artist) {
     try {
         const res = await axios.get(`https://itunes.apple.com/search`, {
-            params: { term: `${artist} ${title}`, entity: 'song', limit: 1 }
+            params: { term: `${artist} ${title}`, entity: 'song', limit: 1 },
+            timeout: 5000
         });
         if (res.data.results && res.data.results.length > 0) {
             const track = res.data.results[0];
@@ -67,14 +68,14 @@ async function searchArtworkAndPhoto(title, artist) {
             };
         }
     } catch (e) {
-        console.log(`Carátula HD no encontrada para: ${title}`);
+        console.log(`Cover iTunes no encontrado para ${title}`);
     }
     return { cover_url: null, artist_photo: null };
 }
 
-// Búsqueda y guardado por artista
+// Escaneo de canciones
 async function scrapeArtistMusic(artist) {
-    console.log(`🔍 Escaneando canciones para: ${artist}...`);
+    console.log(`🔍 Escaneando música para: ${artist}`);
     try {
         const r = await ytSearch(`${artist} official audio track`);
         const videos = r.videos || [];
@@ -82,13 +83,12 @@ async function scrapeArtistMusic(artist) {
         for (const video of videos.slice(0, 5)) {
             const durationSeconds = video.duration.seconds;
 
-            // FILTRO ESTRICTO: Descartar audios de menos de 60 segundos
+            // Filtro estricto: Descartar audios menores a 60 segundos
             if (durationSeconds < 60) {
-                console.log(`⏩ Descartada por corta (${durationSeconds}s): ${video.title}`);
+                console.log(`⏩ Omitida (< 60s): ${video.title}`);
                 continue;
             }
 
-            // Evitar duplicados
             const { data: existing } = await supabase
                 .from('songs')
                 .select('id')
@@ -96,12 +96,11 @@ async function scrapeArtistMusic(artist) {
                 .maybeSingle();
 
             if (existing) {
-                console.log(`✔ Ya existe en catálogo: ${video.title}`);
+                console.log(`✔ Ya existe: ${video.title}`);
                 continue;
             }
 
-            // Obtener Carátula HD y Letras Sincronizadas
-            const artworkData = await searchArtworkAndPhoto(video.title, artist);
+            const artwork = await searchArtworkAndPhoto(video.title, artist);
             const lyrics = await searchLyrics(video.title, artist);
 
             const songData = {
@@ -110,58 +109,96 @@ async function scrapeArtistMusic(artist) {
                 duration: durationSeconds,
                 source: 'youtube',
                 audio_url: video.url,
-                cover_url: artworkData.cover_url || video.thumbnail,
+                cover_url: artwork.cover_url || video.thumbnail,
                 animated_cover: null,
                 lyrics: lyrics || "[00:00.00] Letra no disponible en sincronía",
-                artist_photo: artworkData.artist_photo || video.thumbnail
+                artist_photo: artwork.artist_photo || video.thumbnail
             };
 
             const { error } = await supabase.from('songs').insert([songData]);
-            if (error) {
-                console.error(`❌ Error guardando ${video.title}:`, error.message);
-            } else {
-                console.log(`✅ Agregada al catálogo: ${songData.title}`);
-            }
+            if (error) console.error(`❌ Error guardando ${video.title}:`, error.message);
+            else console.log(`✅ Guardada: ${songData.title}`);
         }
     } catch (e) {
-        console.error(`Error procesando a ${artist}:`, e.message);
+        console.error(`Error en scraper de ${artist}:`, e.message);
     }
 }
 
-// Flujo principal de escaneo
 async function runScraperWorkflow() {
-    console.log('🚀 Iniciando escaneo automático e ingesta de canciones...');
+    console.log('🚀 Ejecutando workflow automático...');
     for (const artist of targetArtists) {
         await scrapeArtistMusic(artist);
     }
-    console.log('🎉 Escaneo completado exitosamente.');
+    console.log('🎉 Workflow finalizado.');
 }
 
-// Cron Job: Cada 4 horas
+// Cron job cada 4 horas
 cron.schedule('0 */4 * * *', () => {
     runScraperWorkflow();
 });
 
-// Endpoints API
+// GET /api/songs (Soporta ?artist=... y ?search=...)
 app.get('/api/songs', async (req, res) => {
-    const { data, error } = await supabase.from('songs').select('*').order('id', { ascending: false });
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    try {
+        let query = supabase.from('songs').select('*').order('id', { ascending: false });
+        if (req.query.artist) {
+            query = query.ilike('artist', `%${req.query.artist}%`);
+        }
+        if (req.query.search) {
+            query = query.or(`title.ilike.%${req.query.search}%,artist.ilike.%${req.query.search}%`);
+        }
+        const { data, error } = await query;
+        if (error) return res.status(500).json({ error: error.message });
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.post('/api/upload', async (req, res) => {
-    const { duration } = req.body;
-    if (duration < 60) {
-        return res.status(400).json({ error: "La canción dura menos de 60 segundos" });
+// GET /api/songs/:id
+app.get('/api/songs/:id', async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('songs').select('*').eq('id', req.params.id).single();
+        if (error) return res.status(404).json({ error: 'Canción no encontrada' });
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
+});
 
-    const { data, error } = await supabase.from('songs').insert([req.body]);
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ success: true, message: "Canción guardada con éxito" });
+// POST /api/upload (Subida Manual)
+app.post('/api/upload', async (req, res) => {
+    try {
+        const { title, artist, duration, audio_url, cover_url, animated_cover, lyrics, artist_photo } = req.body;
+        
+        if (!title || !artist) {
+            return res.status(400).json({ error: "Título y artista son obligatorios." });
+        }
+        if (duration && parseInt(duration) < 60) {
+            return res.status(400).json({ error: "La canción debe durar al menos 60 segundos." });
+        }
+
+        const songData = {
+            title,
+            artist,
+            duration: parseInt(duration) || 180,
+            source: 'manual',
+            audio_url: audio_url || '',
+            cover_url: cover_url || '',
+            animated_cover: animated_cover || null,
+            lyrics: lyrics || null,
+            artist_photo: artist_photo || null
+        };
+
+        const { data, error } = await supabase.from('songs').insert([songData]).select();
+        if (error) return res.status(500).json({ error: error.message });
+        res.json({ success: true, message: "Canción subida manualmente con éxito", song: data[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.listen(PORT, () => {
     console.log(`Sekai Music Server corriendo en puerto ${PORT}`);
-    // AL ARRANCAR EL SERVIDOR, INICIAR BÚSQUEDA DE INMEDIATO
     runScraperWorkflow();
 });
