@@ -21,7 +21,7 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const catalogCache = new NodeCache({ stdTTL: 300 });
+const catalogCache = new NodeCache({ stdTTL: 60 });
 let soundcloudClientId = 'iZea6V13B2S91I1B1i0x90nI0N6N9p6a';
 let isScraperRunning = false;
 
@@ -64,7 +64,7 @@ async function getSoundCloudClientId() {
 async function searchSoundCloud(query) {
     try {
         const clientId = await getSoundCloudClientId();
-        const url = `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=20`;
+        const url = `https://api-v2.soundcloud.com/search/tracks?q=${encodeURIComponent(query)}&client_id=${clientId}&limit=50`;
         const res = await axios.get(url, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
             timeout: 6000
@@ -101,20 +101,21 @@ async function searchYouTube(query) {
 }
 
 const searchTargets = [
-    { genre: "Eve", query: "Eve ooo0eve0ooo Kaikai Kitan" },
-    { genre: "Trío Los Panchos", query: "Trio Los Panchos Sabor a mi" },
-    { genre: "Cuarteto de Nos", query: "Cuarteto de Nos Porfiado" },
-    { genre: "City Pop", query: "80s Japanese City Pop hits" },
-    { genre: "Post-Punk", query: "Molchat Doma Ploho Human Tetris" },
-    { genre: "Boleros", query: "Boleros del recuerdo clasicos" },
-    { genre: "Indie Rock", query: "Arctic Monkeys The Strokes" },
-    { genre: "Lofi Beats", query: "Lofi hip hop relaxing beats" },
-    { genre: "Anime OST", query: "Anime openings full official" },
-    { genre: "J-Pop", query: "J-Pop top chart hits Yoasobi Ado" },
-    { genre: "Phonk", query: "Drift phonk aggressive house" }
+    { genre: "Eve", query: "Eve ooo0eve0ooo Kaikai Kitan official" },
+    { genre: "Trío Los Panchos", query: "Trio Los Panchos Sabor a mi clasicos" },
+    { genre: "Cuarteto de Nos", query: "Cuarteto de Nos Porfiado Raro" },
+    { genre: "City Pop", query: "80s Japanese City Pop hits Tatsuro Yamashita" },
+    { genre: "Post-Punk", query: "Molchat Doma Ploho Human Tetris Russian Post-Punk" },
+    { genre: "Boleros", query: "Boleros del recuerdo clasicos inolvidables" },
+    { genre: "Indie Rock", query: "Arctic Monkeys The Strokes Franz Ferdinand" },
+    { genre: "Lofi Beats", query: "Lofi hip hop relaxing beats study chill" },
+    { genre: "Anime OST", query: "Anime openings full official full soundtrack" },
+    { genre: "J-Pop", query: "J-Pop top chart hits Yoasobi Ado Kenshi Yonezu" },
+    { genre: "Phonk", query: "Drift phonk aggressive house Kordhell" },
+    { genre: "Vocaloid", query: "Hatsune Miku Vocaloid original songs" },
+    { genre: "Rock en Español", query: "Soda Stereo Enanitos Verdes Heroes del Silencio" }
 ];
 
-// Enviar resúmenes enriquecidos a Discord con portadas
 async function sendDiscordSummary(addedSongs) {
     try {
         const channelId = process.env.DISCORD_CHANNEL_ID;
@@ -123,15 +124,14 @@ async function sendDiscordSummary(addedSongs) {
         if (!channel) return;
 
         const mainEmbed = new EmbedBuilder()
-            .setTitle('🌙 Escaneo Nocturno Finalizado')
-            .setDescription(`Se han procesado e insertado exitosamente **${addedSongs.length} nuevas canciones** en la base de datos.`)
+            .setTitle('🌙 Escaneo de Canciones Finalizado')
+            .setDescription(`Se han procesado e insertado exitosamente **${addedSongs.length} nuevas canciones** sin duplicados.`)
             .setColor(0x7289da)
             .setTimestamp();
 
         await channel.send({ embeds: [mainEmbed] });
 
-        // Enviar tarjetas individuales con portadas de hasta las primeras 10 canciones agregadas
-        const sampleSongs = addedSongs.slice(0, 10);
+        const sampleSongs = addedSongs.slice(0, 5);
         for (const song of sampleSongs) {
             const songEmbed = new EmbedBuilder()
                 .setTitle(song.title)
@@ -144,36 +144,38 @@ async function sendDiscordSummary(addedSongs) {
                 .setColor(0x2ecc71);
 
             await channel.send({ embeds: [songEmbed] });
-            await delay(500);
+            await delay(300);
         }
 
-        if (addedSongs.length > 10) {
-            await channel.send(`*...y ${addedSongs.length - 10} canciones más agregadas a la base de datos.*`);
+        if (addedSongs.length > 5) {
+            await channel.send(`*...y ${addedSongs.length - 5} canciones más registradas.*`);
         }
     } catch (e) {
         console.error('Error enviando reporte a Discord:', e.message);
     }
 }
 
-// Scraper Lento (Pausas moderadas de 4s para evitar baneos)
-async function runSlowScraper(maxSongsTarget = 1000) {
+async function runSlowScraper(maxSongsTarget = 1000, customCategory = null) {
     if (isScraperRunning) return;
     isScraperRunning = true;
-    console.log(`🚀 [SCRAPER NOCTURNO] Iniciando proceso lento (Objetivo: ~${maxSongsTarget} canciones)...`);
+    console.log(`🚀 [SCRAPER] Iniciando proceso (Objetivo: ~${maxSongsTarget} canciones)...`);
 
     const addedSongs = [];
+    const targets = customCategory 
+        ? [{ genre: customCategory, query: customCategory }] 
+        : searchTargets;
 
     try {
-        for (const target of searchTargets) {
+        for (const target of targets) {
             if (addedSongs.length >= maxSongsTarget) break;
 
-            console.log(`⏳ Descargando lento: [${target.genre}] -> "${target.query}"`);
+            console.log(`⏳ Buscando: [${target.genre}] -> "${target.query}"`);
 
             const scTracks = await searchSoundCloud(target.query);
-            await delay(2000); 
+            await delay(1500); 
 
             const ytTracks = await searchYouTube(target.query);
-            await delay(2000); 
+            await delay(1500); 
 
             const allTracks = [...scTracks, ...ytTracks];
             const batchToInsert = [];
@@ -208,8 +210,7 @@ async function runSlowScraper(maxSongsTarget = 1000) {
                 }
             }
 
-            // Descarga muy lenta: Pausa de 4 segundos entre cada término de búsqueda
-            await delay(4000);
+            await delay(2500);
         }
 
         catalogCache.del('full_catalog');
@@ -219,64 +220,132 @@ async function runSlowScraper(maxSongsTarget = 1000) {
             await sendDiscordSummary(addedSongs);
         }
     } catch (e) {
-        console.error('Error en scraper nocturno:', e.message);
+        console.error('Error en scraper:', e.message);
     } finally {
         isScraperRunning = false;
     }
 }
 
-// PROGRAMACIÓN: Ejecutar AUTOMÁTICAMENTE desde las 9 PM hasta las 6 AM cada hora
-// Formato cron: Minuto 0, en las horas 21,22,23,0,1,2,3,4,5,6
 cron.schedule('0 21,22,23,0,1,2,3,4,5,6 * * *', () => {
-    console.log('⏰ Horario nocturno activado (9 PM - 6 AM). Iniciando ciclo de descarga lenta...');
-    runSlowScraper(300);
+    console.log('⏰ Horario nocturno activado (9 PM - 6 AM). Iniciando ciclo de ingesta...');
+    runSlowScraper(500);
 });
 
-// ESCUCHADOR DE COMANDOS EN DISCORD
+// ESCUCHADOR DE COMANDOS COMPLETO EN DISCORD
 discordClient.on('messageCreate', async (message) => {
-    if (message.author.bot) return;
+    if (message.author.bot || !message.content.startsWith('!')) return;
 
-    // Comando: !add 1000 music
-    if (message.content.startsWith('!add')) {
-        const args = message.content.split(' ');
-        const limit = parseInt(args[1]) || 100;
+    const args = message.content.slice(1).trim().split(/ +/);
+    const command = args.shift().toLowerCase();
 
-        if (isScraperRunning) {
-            return message.reply('⚠️ El scraper ya se encuentra ejecutando una descarga en este momento.');
-        }
-
-        message.reply(`🚀 Iniciando descarga lenta manual de hasta **${limit} canciones**. Te avisaré por aquí al terminar con los detalles.`);
-        runSlowScraper(limit);
+    if (command === 'status') {
+        return message.reply(isScraperRunning 
+            ? '🔄 El scraper está **activo** descargando canciones.' 
+            : '🟢 El scraper está en **espera** (Inactivo).');
     }
 
-    // Comando: !status
-    if (message.content === '!status') {
-        message.reply(isScraperRunning 
-            ? '🔄 El scraper está **activo** descargando canciones lentamente.' 
-            : '🟢 El scraper está en **espera** (Inactivo).');
+    if (command === 'help') {
+        const helpEmbed = new EmbedBuilder()
+            .setTitle('🤖 Comandos de Sekai Music Bot')
+            .setColor(0x3498db)
+            .addFields(
+                { name: '!status', value: 'Muestra el estado del scraper.' },
+                { name: '!stats', value: 'Muestra el número total real de canciones en la BD.' },
+                { name: '!add [cant] [término]', value: 'Agrega canciones de un término. Ej: `!add 50 vocaloid`' },
+                { name: '!search [nombre]', value: 'Busca canciones guardadas en el catálogo.' },
+                { name: '!trigger', value: 'Fuerza la ejecución del scraper nocturno.' },
+                { name: '!stop', value: 'Cancela la ejecución actual.' }
+            );
+        return message.reply({ embeds: [helpEmbed] });
+    }
+
+    if (command === 'stats') {
+        const { count, error } = await supabase
+            .from('songs')
+            .select('*', { count: 'exact', head: true });
+        
+        if (error) return message.reply('❌ Error al obtener estadísticas.');
+        return message.reply(`📊 Total en la base de datos: **${count} canciones**.`);
+    }
+
+    if (command === 'search') {
+        const query = args.join(' ');
+        if (!query) return message.reply('❌ Indica el nombre a buscar. Ej: `!search Eve`');
+
+        const { data } = await supabase
+            .from('songs')
+            .select('title, artist, source')
+            .or(`title.ilike.%${query}%,artist.ilike.%${query}%`)
+            .limit(5);
+
+        if (!data || data.length === 0) return message.reply('🔍 No se encontraron coincidencias.');
+
+        const results = data.map((s, i) => `${i + 1}. **${s.title}** - ${s.artist} *(${s.source})*`).join('\n');
+        return message.reply(`🎵 **Resultados:**\n${results}`);
+    }
+
+    if (command === 'trigger') {
+        if (isScraperRunning) return message.reply('⚠️ El scraper ya se encuentra ejecutándose.');
+        message.reply('🚀 Forzando inicio del scraper nocturno...');
+        runSlowScraper(300);
+    }
+
+    if (command === 'add') {
+        const limit = parseInt(args[0]) || 50;
+        const category = args.slice(1).join(' ') || null;
+
+        if (isScraperRunning) {
+            return message.reply('⚠️ El scraper ya se encuentra ejecutando una descarga.');
+        }
+
+        message.reply(`🚀 Iniciando ingesta manual de hasta **${limit} canciones**${category ? ` para "${category}"` : ''}.`);
+        runSlowScraper(limit, category);
     }
 });
 
 // ENDPOINTS API REST
 app.get('/api/health', (req, res) => res.status(200).send('OK - Server Active'));
 
+// ENDPOINT DE CATÁLOGO COMPLETO SIN LÍMITES
 app.get('/api/v1/catalog', async (req, res) => {
     try {
-        const cachedCatalog = catalogCache.get('full_catalog');
-        if (cachedCatalog) {
-            return res.json({ status: 'success', server: RENDER_URL, cached: true, total: cachedCatalog.length, catalog: cachedCatalog });
+        // Conteo Exacto sin traer filas
+        const { count, error: countError } = await supabase
+            .from('songs')
+            .select('*', { count: 'exact', head: true });
+
+        if (countError) return res.status(500).json({ status: 'error', message: countError.message });
+
+        let allSongs = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        // Paginación interna para superar el límite de 1000 de Supabase
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('songs')
+                .select('*')
+                .range(page * pageSize, (page + 1) * pageSize - 1)
+                .order('id', { ascending: false });
+
+            if (error) return res.status(500).json({ status: 'error', message: error.message });
+
+            allSongs = allSongs.concat(data);
+            if (data.length < pageSize) {
+                hasMore = false;
+            } else {
+                page++;
+            }
         }
 
-        const { data, error } = await supabase
-            .from('songs')
-            .select('*')
-            .range(0, 9999)
-            .order('id', { ascending: false });
-
-        if (error) return res.status(500).json({ status: 'error', message: error.message });
-
-        catalogCache.set('full_catalog', data);
-        res.json({ status: 'success', server: RENDER_URL, cached: false, total: data.length, catalog: data });
+        res.json({
+            status: 'success',
+            server: RENDER_URL,
+            total: count,
+            fetched: allSongs.length,
+            catalog: allSongs
+        });
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message });
     }
@@ -291,7 +360,7 @@ app.get('/api/v1/search', async (req, res) => {
             .from('songs')
             .select('*')
             .or(`title.ilike.%${q}%,artist.ilike.%${q}%,genre.ilike.%${q}%`)
-            .limit(50);
+            .limit(100);
 
         if (error) return res.status(500).json({ status: 'error', message: error.message });
         res.json({ status: 'success', total: data.length, results: data });
@@ -318,7 +387,6 @@ app.post('/api/upload', requireAuth, async (req, res) => {
     }
 });
 
-
 app.listen(PORT, async () => {
     console.log(`Servidor activo en puerto ${PORT}`);
     
@@ -331,3 +399,4 @@ app.listen(PORT, async () => {
         }
     }
 });
+
