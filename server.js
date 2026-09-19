@@ -7,6 +7,8 @@ const ytSearch = require('yt-search');
 const NodeCache = require('node-cache');
 const { createClient } = require('@supabase/supabase-js');
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const archiver = require('archiver');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 app.use(cors());
@@ -387,6 +389,82 @@ app.post('/api/upload', requireAuth, async (req, res) => {
     }
 });
 
+// =====================================================================
+// NUEVO ENDPOINT: GENERADOR DE RESOURCE PACK (.MCPACK) PARA BEDROCK
+// =====================================================================
+app.post('/api/v1/generate-mcpack', async (req, res) => {
+    try {
+        const { song_ids } = req.body;
+        
+        if (!song_ids || !Array.isArray(song_ids) || song_ids.length === 0) {
+            return res.status(400).json({ status: 'error', message: 'Debes enviar un array de song_ids' });
+        }
+
+        // 1. Obtener los datos de las canciones desde la BD
+        const { data: songs, error } = await supabase
+            .from('songs')
+            .select('*')
+            .in('id', song_ids);
+
+        if (error) throw new Error(error.message);
+
+        // 2. Configurar la respuesta como un archivo descargable .mcpack
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Disposition', 'attachment; filename="SekaiMusic.mcpack"');
+        
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        
+        archive.on('error', (err) => { throw err; });
+        archive.pipe(res);
+
+        // 3. Crear el manifest.json
+        const manifest = {
+            format_version: 2,
+            header: {
+                name: "🎵 Sekai Music Pack",
+                description: "Música generada desde Sekai Music Server",
+                uuid: uuidv4(),
+                version: [1, 0, 0],
+                min_engine_version: [1, 20, 0]
+            },
+            modules: [{
+                type: "resources",
+                uuid: uuidv4(),
+                version: [1, 0, 0]
+            }]
+        };
+        archive.append(JSON.stringify(manifest, null, 2), { name: 'manifest.json' });
+
+        // 4. Crear el sound_definitions.json
+        let soundDefinitions = { format_version: "1.14.0", sound_definitions: {} };
+
+        for (const song of songs) {
+            const internalName = `sekai.track_${song.id}`;
+            soundDefinitions.sound_definitions[internalName] = {
+                category: "record",
+                sounds: [ { name: `sounds/sekai/${song.id}`, stream: true } ]
+            };
+
+            // AQUÍ: La lógica real para descargar el audio de YT/SoundCloud y convertirlo a OGG.
+            // Pide a ChatGPT que integre ytdl-core + fluent-ffmpeg en esta sección.
+            const dummyContent = `Audio temporal para: ${song.title} - ${song.artist}`; 
+            archive.append(dummyContent, { name: `sounds/sekai/${song.id}.ogg` });
+        }
+
+        archive.append(JSON.stringify(soundDefinitions, null, 2), { name: 'sounds/sound_definitions.json' });
+
+        // 5. Finalizar el empaquetado y enviarlo
+        await archive.finalize();
+
+    } catch (err) {
+        console.error("Error generando mcpack:", err);
+        if (!res.headersSent) {
+            res.status(500).json({ status: 'error', message: err.message });
+        }
+    }
+});
+// =====================================================================
+
 app.listen(PORT, async () => {
     console.log(`Servidor activo en puerto ${PORT}`);
     
@@ -399,4 +477,3 @@ app.listen(PORT, async () => {
         }
     }
 });
-
