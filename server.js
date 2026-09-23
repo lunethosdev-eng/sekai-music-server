@@ -39,6 +39,15 @@ let soundcloudClientId = 'iZea6V13B2S91I1B1i0x90nI0N6N9p6a';
 let isScraperRunning = false;
 let scraperCancelRequested = false;
 
+// Contador de peticiones global
+let totalApiRequests = 0;
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+        totalApiRequests++;
+    }
+    next();
+});
+
 // User Agents para rotación anti-bloqueo
 const USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -640,9 +649,11 @@ function convertStreamToOgg(inputStream) {
 // ============================================================
 app.get('/api/health', async (req, res) => {
     let dbOk = false;
+    let songCount = 0;
     try {
-        const { error } = await supabase.from('songs').select('id', { head: true, count: 'exact' });
+        const { count, error } = await supabase.from('songs').select('id', { head: true, count: 'exact' });
         dbOk = !error;
+        songCount = count || 0;
     } catch (_) {}
 
     res.status(200).json({
@@ -651,6 +662,8 @@ app.get('/api/health', async (req, res) => {
         scraper_running: isScraperRunning,
         streams: streamConcurrency.current,
         max_streams: streamConcurrency.max,
+        total_songs: songCount,
+        total_api_requests: totalApiRequests,
         db: dbOk ? 'up' : 'down',
         memory_mb: Math.round(process.memoryUsage().rss / 1024 / 1024),
         uptime_sec: Math.floor(process.uptime()),
@@ -839,4 +852,3 @@ app.listen(PORT, async () => {
         }
     }
 });
-
