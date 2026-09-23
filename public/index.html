@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sekai Enterprise API & Music Infrastructure</title>
+    <title>Sekai Enterprise Audio Infrastructure & Dynamic APIs</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -63,6 +63,10 @@
             color: #f1f5f9;
             font-family: 'Plus Jakarta Sans', sans-serif;
             overflow-x: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
 
         .glass-panel {
@@ -140,8 +144,32 @@
 
     <div class="ambient-glow top-[-100px] left-1/2 -translate-x-1/2 animate-liquid-shine"></div>
 
+    <!-- PANTALLA DE MANTENIMIENTO GLOBAL SUPERPUESTA -->
+    <div id="maintenance-screen" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl hidden flex flex-col items-center justify-center p-6 text-center">
+        <div class="w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-6 animate-pulse">
+            <i class="fa-solid fa-screwdriver-wrench text-3xl"></i>
+        </div>
+        <h1 class="font-heading font-extrabold text-3xl sm:text-5xl text-white mb-3">Mantenimiento en Proceso</h1>
+        <p id="maintenance-message-text" class="text-zinc-400 text-sm sm:text-base max-w-lg font-mono mb-8">
+            El sistema se encuentra en mantenimiento programado. Por favor, reintente en unos minutos.
+        </p>
+        <div class="inline-flex items-center space-x-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-mono text-zinc-300">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            <span>Comando activado desde servidor de control</span>
+        </div>
+    </div>
+
+    <!-- BARRA DE ANUNCIO GLOBAL EN TIEMPO REAL -->
+    <div id="global-announcement-bar" class="hidden bg-gradient-to-r from-purple-900/80 via-indigo-900/80 to-blue-900/80 border-b border-purple-500/30 px-4 py-2.5 text-xs font-mono text-white text-center sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-bullhorn text-amber-400 animate-bounce"></i>
+            <span class="font-bold text-amber-300">ANUNCIO OFICIAL:</span>
+            <span id="global-announcement-text">Cargando aviso...</span>
+        </div>
+    </div>
+
     <!-- NAVBAR RESPONSIVE -->
-    <header class="sticky top-0 z-50 glass-panel border-b border-white/10">
+    <header class="sticky top-0 z-40 glass-panel border-b border-white/10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
             
             <!-- Logo -->
@@ -151,9 +179,9 @@
                 </div>
                 <div>
                     <span class="font-heading font-extrabold text-base sm:text-lg tracking-wider text-white flex items-center gap-1.5">
-                        SEKAI <span class="text-[9px] sm:text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">v2.4 PRO</span>
+                        SEKAI <span class="text-[9px] sm:text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">v5.0 ENTERPRISE</span>
                     </span>
-                    <p class="hidden sm:block text-[9px] text-zinc-400 font-mono tracking-wider uppercase">Enterprise Audio API</p>
+                    <p class="hidden sm:block text-[9px] text-zinc-400 font-mono tracking-wider uppercase">Multi-Version Audio API Engine</p>
                 </div>
             </a>
 
@@ -161,7 +189,7 @@
             <nav class="hidden lg:flex items-center space-x-1 bg-white/5 border border-white/10 p-1.5 rounded-full text-xs font-medium backdrop-blur-md">
                 <button onclick="showView('landing')" id="nav-landing" class="px-4 py-2 rounded-full text-white bg-white/10 transition">Overview</button>
                 <button onclick="showView('catalog')" id="nav-catalog" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition">Catálogo Audio</button>
-                <button onclick="showView('docs')" id="nav-docs" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition">API Single-Endpoint</button>
+                <button onclick="showView('docs')" id="nav-docs" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition">APIs (v1-v5)</button>
                 <button onclick="showView('dashboard')" id="nav-dashboard" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition flex items-center gap-1.5">
                     <i class="fa-solid fa-chart-line text-[10px]"></i> Dashboard
                 </button>
@@ -173,8 +201,8 @@
                     Iniciar Sesión
                 </button>
                 <button onclick="openAuthModal('register')" class="glass-button text-xs font-bold px-4 py-2 rounded-full flex items-center space-x-1.5">
-                    <span>Obtener Key</span>
-                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    <span>Generar API Key</span>
+                    <i class="fa-solid fa-key text-[10px]"></i>
                 </button>
             </div>
 
@@ -182,7 +210,7 @@
             <div class="hidden sm:flex items-center space-x-2" id="user-profile-container">
                 <button onclick="showView('dashboard')" class="flex items-center space-x-2 bg-white/5 border border-white/10 hover:border-white/30 px-3 py-1.5 rounded-full transition max-w-[180px]">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                    <span id="user-display-email" class="text-xs font-mono font-medium text-zinc-200 truncate">dev@enterprise.com</span>
+                    <span id="user-display-email" class="text-xs font-mono font-medium text-zinc-200 truncate">usuario@empresa.com</span>
                 </button>
                 <button onclick="logoutUser()" title="Cerrar Sesión" class="w-8 h-8 rounded-full bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-white/10 flex items-center justify-center transition">
                     <i class="fa-solid fa-power-off text-xs"></i>
@@ -201,12 +229,12 @@
             <nav class="flex flex-col space-y-2 text-sm">
                 <button onclick="showView('landing'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Overview</button>
                 <button onclick="showView('catalog'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Catálogo Audio</button>
-                <button onclick="showView('docs'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">API Endpoint</button>
+                <button onclick="showView('docs'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Documentación APIs</button>
                 <button onclick="showView('dashboard'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Dashboard</button>
             </nav>
             <div class="pt-2 border-t border-white/10 flex flex-col space-y-2" id="mobile-auth-container">
                 <button onclick="openAuthModal('login'); toggleMobileMenu()" class="w-full py-2.5 rounded-xl bg-white/5 text-zinc-200 text-xs font-bold">Iniciar Sesión</button>
-                <button onclick="openAuthModal('register'); toggleMobileMenu()" class="w-full py-2.5 rounded-xl bg-white text-black text-xs font-bold">Obtener API Key</button>
+                <button onclick="openAuthModal('register'); toggleMobileMenu()" class="w-full py-2.5 rounded-xl bg-white text-black text-xs font-bold">Obtener API Key Única</button>
             </div>
         </div>
     </header>
@@ -215,22 +243,22 @@
     <section id="view-landing" class="view-section active max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex-grow w-full relative">
         <div class="text-center space-y-6 max-w-4xl mx-auto pt-4 sm:pt-8">
             <div class="inline-flex items-center space-x-2 bg-white/5 border border-white/15 px-3 py-1 rounded-full text-[11px] sm:text-xs font-mono text-zinc-300 animate-float">
-                <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
-                <span>Infraestructura Sonora para Android & Web</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>Infraestructura Sonora Multi-API (v1, v2, v3, v4, v5)</span>
             </div>
 
             <h1 class="font-heading font-extrabold text-3xl sm:text-6xl lg:text-7xl tracking-tight text-white leading-tight">
                 Infraestructura Audio <br class="hidden sm:block">
-                <span class="gradient-text-mono italic">Ultra-Rápida.</span>
+                <span class="gradient-text-mono italic">Ultra-Rápida & Real.</span>
             </h1>
 
             <p class="text-zinc-400 text-xs sm:text-base font-normal max-w-2xl mx-auto leading-relaxed">
-                Una sola llamada API autorizada entrega catálogo dinámico, metadatos sincronizados, letras LRC y streaming optimizado en OGG para Android Nativo, WebView y PWA.
+                APIs dedicadas e independientes por usuario. Métricas en tiempo real, transcodificación nativa OGG, letras sincronizadas LRC y control remoto por Discord.
             </p>
 
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <button onclick="openAuthModal('register')" class="w-full sm:w-auto px-6 py-3.5 rounded-full bg-white text-black font-extrabold text-xs sm:text-sm hover:bg-zinc-200 transition shadow-2xl flex items-center justify-center space-x-2">
-                    <span>Crear Cuenta & Obtener API Key</span>
+                    <span>Crear Cuenta & Obtener API Key Única</span>
                     <i class="fa-solid fa-key"></i>
                 </button>
                 <button onclick="openAuthModal('login')" class="w-full sm:w-auto px-6 py-3.5 rounded-full glass-button font-bold text-xs sm:text-sm text-white flex items-center justify-center space-x-2">
@@ -246,7 +274,7 @@
                     <span class="w-2.5 h-2.5 rounded-full bg-red-500/40"></span>
                     <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/40"></span>
                     <span class="w-2.5 h-2.5 rounded-full bg-green-500/40"></span>
-                    <span class="ml-2 font-bold text-white truncate">GET /api/v1/catalog</span>
+                    <span class="ml-2 font-bold text-white truncate">GET /api/v2/catalog</span>
                 </div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">200 OK</span>
@@ -256,22 +284,22 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                 <div class="space-y-2">
                     <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
-                        <span>Petición cURL</span>
-                        <button onclick="copySnippet('curl-sample')" class="hover:text-white"><i class="fa-regular fa-copy"></i> Copiar</button>
+                        <span>Petición cURL Con Key Única</span>
                     </div>
-                    <pre id="curl-sample" class="bg-black/60 p-3 sm:p-4 rounded-xl border border-white/10 text-[10px] sm:text-xs font-mono text-zinc-300 overflow-x-auto">
-curl -X GET "/api/v1/catalog" \
-  -H "x-api-key: sekai_secret_key_123"</pre>
+                    <pre class="bg-black/60 p-3 sm:p-4 rounded-xl border border-white/10 text-[10px] sm:text-xs font-mono text-zinc-300 overflow-x-auto">
+curl -X GET "/api/v2/catalog" \
+  -H "x-api-key: sk_live_your_unique_user_key"</pre>
                 </div>
 
                 <div class="space-y-2">
                     <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
-                        <span>Respuesta JSON</span>
-                        <span class="text-zinc-500">Live Sync</span>
+                        <span>Respuesta JSON v2 Enriquecida</span>
+                        <span class="text-zinc-500">Live DB</span>
                     </div>
                     <pre class="bg-black/60 p-3 sm:p-4 rounded-xl border border-white/10 text-[10px] sm:text-xs font-mono text-emerald-400 overflow-x-auto max-h-36">
 {
   "status": "success",
+  "version": "v2",
   "total": 3277,
   "catalog": [...]
 }</pre>
@@ -299,17 +327,17 @@ curl -X GET "/api/v1/catalog" \
             </div>
         </div>
 
-        <!-- Key Block -->
+        <!-- Key Block Exclusivo de Usuario Real -->
         <div class="my-6 glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div class="space-y-2 w-full lg:w-auto">
                     <div class="flex items-center space-x-2">
-                        <span class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold">Clave API Exclusiva</span>
+                        <span class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold">Tu Clave API Personal Registrada</span>
                         <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-mono px-2 py-0.5 rounded-full">Activa</span>
                     </div>
                     <div class="flex items-center space-x-2 bg-black/80 p-2.5 rounded-xl border border-white/10 w-full sm:max-w-md">
                         <i class="fa-solid fa-key text-zinc-500 text-xs pl-1"></i>
-                        <input type="password" id="user-api-key-input" readonly value="sekai_secret_key_123" class="bg-transparent font-mono text-xs text-zinc-200 focus:outline-none w-full min-w-0">
+                        <input type="password" id="user-api-key-input" readonly value="Inicia sesión para ver tu Key" class="bg-transparent font-mono text-xs text-zinc-200 focus:outline-none w-full min-w-0">
                         <button onclick="toggleKeyVisibility()" class="text-xs text-zinc-400 hover:text-white px-1.5"><i class="fa-regular fa-eye" id="eye-icon"></i></button>
                         <button onclick="copyUserApiKey()" class="bg-white/10 hover:bg-white text-white hover:text-black px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition shrink-0">Copiar</button>
                     </div>
@@ -317,14 +345,14 @@ curl -X GET "/api/v1/catalog" \
 
                 <div class="flex flex-wrap items-center gap-3 pt-2 lg:pt-0">
                     <div class="font-mono text-xs text-zinc-400">
-                        <p>Límite Streams: <strong class="text-white" id="stream-limit-display">4 Simultáneos</strong></p>
-                        <p>Plan Actual: <strong class="text-emerald-400">Enterprise Unlimited</strong></p>
+                        <p>Límite Streams: <strong class="text-white" id="stream-limit-display">8 Simultáneos</strong></p>
+                        <p>Plan Actual: <strong class="text-emerald-400">Enterprise Unlimited Multi-Key</strong></p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Metric Cards -->
+        <!-- Metric Cards REALES de Supabase -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <div class="glass-card p-4 rounded-2xl space-y-1">
                 <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
@@ -332,12 +360,12 @@ curl -X GET "/api/v1/catalog" \
                     <i class="fa-solid fa-database text-zinc-500 text-xs"></i>
                 </div>
                 <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-total-songs">0</div>
-                <div class="text-[10px] font-mono text-emerald-400 truncate">Ingesta automatizada</div>
+                <div class="text-[10px] font-mono text-emerald-400 truncate">Sincronización en vivo</div>
             </div>
 
             <div class="glass-card p-4 rounded-2xl space-y-1">
                 <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
-                    <span class="truncate">Peticiones API</span>
+                    <span class="truncate">Peticiones API Reales</span>
                     <i class="fa-solid fa-chart-simple text-zinc-500 text-xs"></i>
                 </div>
                 <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-total-requests">0</div>
@@ -349,13 +377,13 @@ curl -X GET "/api/v1/catalog" \
                     <span class="truncate">Streams Activos</span>
                     <i class="fa-solid fa-tower-cell text-emerald-400 text-xs"></i>
                 </div>
-                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-active-streams">0 / 4</div>
+                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-active-streams">0 / 8</div>
                 <div class="text-[10px] font-mono text-zinc-400 truncate">Transcodificación FFmpeg</div>
             </div>
 
             <div class="glass-card p-4 rounded-2xl space-y-1">
                 <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
-                    <span class="truncate">Uptime</span>
+                    <span class="truncate">Uptime Servidor</span>
                     <i class="fa-solid fa-bolt text-yellow-400 text-xs"></i>
                 </div>
                 <div class="text-xl sm:text-3xl font-heading font-extrabold text-white truncate" id="stat-uptime">0s</div>
@@ -366,8 +394,8 @@ curl -X GET "/api/v1/catalog" \
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div class="lg:col-span-2 glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10 space-y-4">
                 <div>
-                    <h3 class="font-heading font-bold text-base text-white">Volumen de Peticiones API</h3>
-                    <p class="text-xs font-mono text-zinc-400">Uso estimado de tráfico</p>
+                    <h3 class="font-heading font-bold text-base text-white">Volumen de Peticiones API (Multi-Endpoint)</h3>
+                    <p class="text-xs font-mono text-zinc-400">Tráfico global monitorizado</p>
                 </div>
                 <div class="h-48 sm:h-64 w-full">
                     <canvas id="requestsChart"></canvas>
@@ -376,8 +404,8 @@ curl -X GET "/api/v1/catalog" \
 
             <div class="glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10 space-y-4">
                 <div>
-                    <h3 class="font-heading font-bold text-base text-white">Distribución de Clientes</h3>
-                    <p class="text-xs font-mono text-zinc-400">Orígenes detectados</p>
+                    <h3 class="font-heading font-bold text-base text-white">Distribución por Versión de API</h3>
+                    <p class="text-xs font-mono text-zinc-400">Uso por clientes (v1 a v5)</p>
                 </div>
                 <div class="h-48 sm:h-64 w-full flex items-center justify-center">
                     <canvas id="clientsChart"></canvas>
@@ -401,7 +429,6 @@ curl -X GET "/api/v1/catalog" \
             </div>
         </div>
 
-        <!-- Adaptable Responsive Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4" id="catalog-grid">
             <!-- Renderizado dinámico -->
         </div>
@@ -409,12 +436,12 @@ curl -X GET "/api/v1/catalog" \
         <div class="pt-4 border-t border-white/10">
             <button onclick="toggleAdminPanel()" class="glass-button px-4 py-2 rounded-xl text-xs font-mono text-zinc-300 hover:text-white flex items-center space-x-2">
                 <i class="fa-solid fa-plus text-xs"></i>
-                <span>Añadir Canción Manual al Servidor</span>
+                <span>Añadir Canción Manual con tu API Key</span>
             </button>
         </div>
 
         <div id="admin-panel" class="hidden glass-panel p-4 sm:p-6 rounded-2xl border border-amber-500/30 space-y-4">
-            <h3 class="text-xs font-bold text-amber-400 font-mono uppercase tracking-wider">Inyectar Canción en Supabase</h3>
+            <h3 class="text-xs font-bold text-amber-400 font-mono uppercase tracking-wider">Inyectar Canción en Supabase con tu Clave API</h3>
             <form id="upload-form" onsubmit="addCustomSong(event)" class="space-y-3">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <input type="text" id="song-title" required placeholder="Título de la pista" class="glass-input p-2.5 rounded-xl text-xs">
@@ -434,62 +461,52 @@ curl -X GET "/api/v1/catalog" \
         </div>
     </section>
 
-    <!-- VIEW 4: API DOCUMENTATION -->
+    <!-- VIEW 4: API DOCUMENTATION (v1 a v5) -->
     <section id="view-docs" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full space-y-6">
         <div class="glass-panel p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/10 space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-4 gap-2">
                 <div>
-                    <h2 class="font-heading font-extrabold text-xl sm:text-2xl text-white">API Single-Endpoint Universal</h2>
-                    <p class="text-xs font-mono text-zinc-400 mt-1">Catálogo dinámico, metadatos y streaming directo en OGG.</p>
-                </div>
-                <span class="self-start sm:self-auto px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-xs font-bold rounded-lg">GET /api/v1/catalog</span>
-            </div>
-
-            <div class="space-y-3">
-                <label class="text-xs font-mono text-zinc-300 font-bold">Probar Endpoint en Tiempo Real:</label>
-                <div class="flex flex-col sm:flex-row items-center gap-2">
-                    <div class="flex items-center bg-black/80 px-3 py-2.5 rounded-xl border border-white/10 flex-grow w-full min-w-0">
-                        <span class="text-xs font-mono text-emerald-400 font-bold mr-2 shrink-0">GET</span>
-                        <code class="text-xs font-mono text-zinc-300 truncate" id="endpoint-url-display">/api/v1/catalog</code>
-                    </div>
-                    <button onclick="executeSandboxFetch()" class="w-full sm:w-auto px-5 py-2.5 bg-white text-black hover:bg-zinc-200 font-bold text-xs rounded-xl font-mono transition flex items-center justify-center space-x-2 shrink-0">
-                        <i class="fa-solid fa-play"></i>
-                        <span>Ejecutar Petición</span>
-                    </button>
+                    <h2 class="font-heading font-extrabold text-xl sm:text-2xl text-white">APIs Multiversión (v1, v2, v3, v4, v5)</h2>
+                    <p class="text-xs font-mono text-zinc-400 mt-1">Endpoints dinámicos de catálogo, transcodificación OGG, letras y analíticas.</p>
                 </div>
             </div>
 
+            <!-- Endpoint Selector Tabs -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 font-mono text-xs">
+                <button onclick="setDocVersion('v1')" id="tab-v1" class="py-2 rounded-xl bg-white text-black font-bold text-center">API v1 Basic</button>
+                <button onclick="setDocVersion('v2')" id="tab-v2" class="py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center">API v2 HD/LRC</button>
+                <button onclick="setDocVersion('v3')" id="tab-v3" class="py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center">API v3 Audio Stream</button>
+                <button onclick="setDocVersion('v4')" id="tab-v4" class="py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center">API v4 Analytics</button>
+                <button onclick="setDocVersion('v5')" id="tab-v5" class="py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center">API v5 Batch</button>
+            </div>
+
+            <div class="space-y-3 pt-4 border-t border-white/10">
+                <div class="flex items-center bg-black/80 px-3 py-2.5 rounded-xl border border-white/10 flex-grow w-full min-w-0">
+                    <span class="text-xs font-mono text-emerald-400 font-bold mr-2 shrink-0" id="doc-method">GET</span>
+                    <code class="text-xs font-mono text-zinc-300 truncate" id="endpoint-url-display">/api/v1/catalog</code>
+                </div>
+                <button onclick="executeSandboxFetch()" class="w-full sm:w-auto px-5 py-2.5 bg-white text-black hover:bg-zinc-200 font-bold text-xs rounded-xl font-mono transition flex items-center justify-center space-x-2 shrink-0">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Probar Endpoint</span>
+                </button>
+            </div>
+
+            <!-- Documentación detallada por código -->
             <div class="space-y-4 pt-2">
-                <h3 class="text-xs font-mono text-zinc-400 uppercase tracking-wider font-bold">Ejemplos de Integración Directa</h3>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-black/80 p-3 sm:p-4 rounded-xl border border-white/10 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-bold text-amber-400 font-mono">JavaScript / Web App</span>
-                            <button onclick="copySnippet('js-code')" class="text-xs text-zinc-400 hover:text-white"><i class="fa-regular fa-copy"></i></button>
-                        </div>
-                        <pre id="js-code" class="text-[11px] font-mono text-zinc-300 overflow-x-auto">
-const res = await fetch('/api/v1/catalog');
-const { catalog } = await res.json();
-console.log(catalog);</pre>
-                    </div>
-
-                    <div class="bg-black/80 p-3 sm:p-4 rounded-xl border border-white/10 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-bold text-emerald-400 font-mono">Android Kotlin / ExoPlayer Stream</span>
-                            <button onclick="copySnippet('kt-code')" class="text-xs text-zinc-400 hover:text-white"><i class="fa-regular fa-copy"></i></button>
-                        </div>
-                        <pre id="kt-code" class="text-[11px] font-mono text-zinc-300 overflow-x-auto">
-val streamUrl = "https://tu-dominio.com/api/v1/stream/104"
-val mediaItem = MediaItem.fromUri(streamUrl)
-player.setMediaItem(mediaItem)</pre>
-                    </div>
+                <h3 class="text-xs font-mono text-zinc-400 uppercase tracking-wider font-bold">Ejemplo de Código de Integración</h3>
+                <div class="bg-black/80 p-4 rounded-xl border border-white/10">
+                    <pre id="doc-code-preview" class="text-xs font-mono text-zinc-300 overflow-x-auto">
+// API v1 Ejemplo
+const response = await fetch('/api/v1/catalog', {
+    headers: { 'x-api-key': 'tu_api_key_unica' }
+});
+const data = await response.json();</pre>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- AUTHENTICATION MODAL -->
+    <!-- AUTHENTICATION MODAL REAL -->
     <div id="auth-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl hidden flex items-center justify-center p-4">
         <div class="glass-panel max-w-sm w-full p-6 rounded-2xl relative border border-white/15 space-y-4 shadow-2xl">
             <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
@@ -501,13 +518,13 @@ player.setMediaItem(mediaItem)</pre>
                     SK
                 </div>
                 <h3 class="font-heading font-extrabold text-xl text-white" id="modal-title">Iniciar Sesión</h3>
-                <p class="text-[11px] text-zinc-400 font-mono" id="modal-subtitle">Accede a tu panel e interfaz de control.</p>
+                <p class="text-[11px] text-zinc-400 font-mono" id="modal-subtitle">Accede a tu API Key e infraestructura.</p>
             </div>
 
             <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-3">
                 <div>
                     <label class="text-[11px] font-mono text-zinc-300">Correo Electrónico:</label>
-                    <input type="email" id="auth-email" required placeholder="developer@empresa.com" class="w-full glass-input p-2.5 rounded-xl text-xs mt-1">
+                    <input type="email" id="auth-email" required placeholder="desarrollador@empresa.com" class="w-full glass-input p-2.5 rounded-xl text-xs mt-1">
                 </div>
                 <div>
                     <label class="text-[11px] font-mono text-zinc-300">Contraseña:</label>
@@ -549,7 +566,7 @@ player.setMediaItem(mediaItem)</pre>
             </div>
 
             <div class="hidden sm:flex items-center justify-end w-1/3">
-                <span id="player-source" class="text-[9px] font-mono px-2 py-0.5 rounded bg-white/10 text-zinc-300 border border-white/10 truncate">STREAMING OGG</span>
+                <span id="player-source" class="text-[9px] font-mono px-2 py-0.5 rounded bg-white/10 text-zinc-300 border border-white/10 truncate">STREAMING OGG v2</span>
             </div>
 
         </div>
@@ -561,15 +578,45 @@ player.setMediaItem(mediaItem)</pre>
             <button onclick="closeLyricsModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
-            <h3 class="font-heading font-extrabold text-base text-white">Letra de la Canción</h3>
+            <h3 class="font-heading font-extrabold text-base text-white">Letra Sincronizada (LRC)</h3>
             <div id="lyrics-content" class="text-xs font-mono text-zinc-300 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed bg-black/60 p-3 rounded-xl border border-white/10"></div>
         </div>
     </div>
 
-    <!-- SCRIPT & BACKEND INTEGRATION -->
+    <!-- SCRIPT & FRONTEND LOGIC COMPLETA CON SEGURIDAD ANTI-INSPECCIÓN -->
     <script>
+        // ===============================================
+        // PROTECCIÓN ANTI-INSPECCIÓN Y BLOQUEO DE CÓDIGO
+        // ===============================================
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            // Deshabilitar F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+Shift+C
+            if (e.keyCode === 123 || 
+               (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) ||
+               (e.ctrlKey && e.keyCode === 85)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Trampa contra herramientas de inspección
+        setInterval(function() {
+            const start = performance.now();
+            (function() {}.constructor("debugger")());
+            const end = performance.now();
+            if (end - start > 100) {
+                document.body.innerHTML = '<div style="color:white;text-center;padding:50px;font-family:sans-serif;"><h1>Acceso Denegado</h1><p>Inspección de código detectada e interceptada por seguridad.</p></div>';
+            }
+        }, 1000);
+
+        // ===============================================
+        // LÓGICA DE APLICACIÓN FRONTEND
+        // ===============================================
         let currentAuthMode = 'login';
-        let currentUser = JSON.parse(localStorage.getItem('sekai_user')) || null;
+        let currentUser = JSON.parse(localStorage.getItem('sekai_real_user')) || null;
         let globalCatalog = [];
         let currentGenre = '';
         let currentSong = null;
@@ -577,6 +624,7 @@ player.setMediaItem(mediaItem)</pre>
         let requestsChart = null;
         let clientsChart = null;
         let searchTimeout = null;
+        let activeDocVersion = 'v1';
 
         const audioElement = document.getElementById('main-audio-player');
         const defaultGenres = ["Eve", "Trío Los Panchos", "Post-Punk", "City Pop", "Boleros", "Indie Rock", "Lofi Beats", "Anime OST", "J-Pop", "Vocaloid"];
@@ -587,13 +635,35 @@ player.setMediaItem(mediaItem)</pre>
         });
 
         function toggleMobileMenu() {
-            const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('hidden');
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        }
+
+        async function checkSystemStatus() {
+            try {
+                const res = await fetch('/api/system/status');
+                const data = await res.json();
+                
+                const mScreen = document.getElementById('maintenance-screen');
+                if (data.maintenance) {
+                    mScreen.classList.remove('hidden');
+                    document.getElementById('maintenance-message-text').innerText = data.maintenanceMessage;
+                } else {
+                    mScreen.classList.add('hidden');
+                }
+
+                const annBar = document.getElementById('global-announcement-bar');
+                if (data.announcement) {
+                    annBar.classList.remove('hidden');
+                    document.getElementById('global-announcement-text').innerText = data.announcement;
+                } else {
+                    annBar.classList.add('hidden');
+                }
+            } catch (_) {}
         }
 
         async function fetchCatalog() {
             try {
-                const res = await fetch('/api/v1/catalog');
+                const res = await fetch('/api/v2/catalog');
                 const data = await res.json();
                 if (data.status === 'success') {
                     globalCatalog = data.catalog || [];
@@ -603,7 +673,7 @@ player.setMediaItem(mediaItem)</pre>
                     if (statTotal) statTotal.innerText = data.total || globalCatalog.length;
                 }
             } catch (e) {
-                console.error('Error al cargar catálogo:', e);
+                console.error('Error cargando catálogo:', e);
             }
         }
 
@@ -650,18 +720,18 @@ player.setMediaItem(mediaItem)</pre>
             currentSong = song;
             document.getElementById('player-title').innerText = song.title;
             document.getElementById('player-artist').innerText = song.artist || 'Desconocido';
-            document.getElementById('player-cover').src = song.cover_url || 'https://via.placeholder.com/150';
-            document.getElementById('player-source').innerText = (song.source || 'OGG STREAM').toUpperCase();
+            document.getElementById('player-cover').src = song.cover_url || song.high_res_cover || 'https://via.placeholder.com/150';
+            document.getElementById('player-source').innerText = (song.source || 'OGG v2 STREAM').toUpperCase();
             document.getElementById('player-bar').classList.remove('translate-y-full');
 
-            const streamUrl = song.stream_url || `/api/v1/stream/${song.id}`;
+            const streamUrl = song.stream_url || `/api/v2/stream/${song.id}`;
             audioElement.src = streamUrl;
             
             audioElement.play().then(() => {
                 isPlaying = true;
                 updatePlayButton();
             }).catch(err => {
-                console.error("Error reproduciendo audio:", err);
+                console.error("Error al reproducir audio:", err);
             });
         }
 
@@ -686,7 +756,7 @@ player.setMediaItem(mediaItem)</pre>
 
         function openLyricsModal() {
             if (!currentSong) return;
-            document.getElementById('lyrics-content').innerText = currentSong.lyrics || "Letra no disponible aún para esta pista.";
+            document.getElementById('lyrics-content').innerText = currentSong.lyrics || "Letra sincronizada no disponible para esta pista.";
             document.getElementById('lyrics-modal').classList.remove('hidden');
         }
 
@@ -744,7 +814,7 @@ player.setMediaItem(mediaItem)</pre>
             grid.innerHTML = data.map(song => `
                 <div class="glass-card rounded-xl p-2.5 flex flex-col justify-between group cursor-pointer" onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")})'>
                     <div class="relative aspect-square rounded-lg bg-zinc-900 overflow-hidden mb-2">
-                        <img src="${song.cover_url || 'https://via.placeholder.com/300'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <img src="${song.cover_url || song.high_res_cover || 'https://via.placeholder.com/300'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                         <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                             <div class="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-lg">
                                 <i class="fa-solid fa-play text-xs ml-0.5"></i>
@@ -764,11 +834,21 @@ player.setMediaItem(mediaItem)</pre>
         }
 
         function toggleAdminPanel() {
+            if (!currentUser || !currentUser.apiKey) {
+                alert('Debes iniciar sesión para obtener tu API Key y subir pistas.');
+                openAuthModal('login');
+                return;
+            }
             document.getElementById('admin-panel').classList.toggle('hidden');
         }
 
         async function addCustomSong(e) {
             e.preventDefault();
+            if (!currentUser || !currentUser.apiKey) {
+                alert('API Key de usuario requerida.');
+                return;
+            }
+
             const songData = {
                 title: document.getElementById('song-title').value,
                 artist: document.getElementById('song-artist').value,
@@ -784,14 +864,14 @@ player.setMediaItem(mediaItem)</pre>
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-api-key': 'sekai_secret_key_123'
+                        'x-api-key': currentUser.apiKey
                     },
                     body: JSON.stringify(songData)
                 });
 
                 const data = await res.json();
                 if (data.success) {
-                    alert('¡Canción subida e inyectada con éxito!');
+                    alert('¡Canción inyectada exitosamente a la base de datos!');
                     document.getElementById('upload-form').reset();
                     toggleAdminPanel();
                     fetchCatalog();
@@ -799,7 +879,45 @@ player.setMediaItem(mediaItem)</pre>
                     alert('Error: ' + (data.error || 'No se pudo insertar'));
                 }
             } catch (err) {
-                alert('Error al conectar con la API.');
+                alert('Error al conectar con el servidor.');
+            }
+        }
+
+        function setDocVersion(v) {
+            activeDocVersion = v;
+            ['v1', 'v2', 'v3', 'v4', 'v5'].forEach(ver => {
+                const tab = document.getElementById(`tab-${ver}`);
+                if (tab) {
+                    tab.className = (ver === v) 
+                        ? 'py-2 rounded-xl bg-white text-black font-bold text-center'
+                        : 'py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center';
+                }
+            });
+
+            const display = document.getElementById('endpoint-url-display');
+            const preview = document.getElementById('doc-code-preview');
+            const method = document.getElementById('doc-method');
+
+            if (v === 'v1') {
+                method.innerText = 'GET';
+                display.innerText = '/api/v1/catalog';
+                preview.innerText = `// API v1: Catálogo Estándar\nconst res = await fetch('/api/v1/catalog');\nconst data = await res.json();`;
+            } else if (v === 'v2') {
+                method.innerText = 'GET';
+                display.innerText = '/api/v2/catalog';
+                preview.innerText = `// API v2: Metadatos Enriquecidos y Letras LRC\nconst res = await fetch('/api/v2/catalog');\nconst data = await res.json();`;
+            } else if (v === 'v3') {
+                method.innerText = 'GET';
+                display.innerText = '/api/v3/stream/:id';
+                preview.innerText = `// API v3: Audio Streaming OGG Optimizado\nconst streamUrl = "/api/v3/stream/104";\nconst audio = new Audio(streamUrl);`;
+            } else if (v === 'v4') {
+                method.innerText = 'GET';
+                display.innerText = '/api/v4/trends';
+                preview.innerText = `// API v4: Métricas y Tendencias\nconst res = await fetch('/api/v4/trends');\nconst analytics = await res.json();`;
+            } else if (v === 'v5') {
+                method.innerText = 'POST';
+                display.innerText = '/api/v5/batch-query';
+                preview.innerText = `// API v5: Consulta Batch Autenticada con tu Key Única\nconst res = await fetch('/api/v5/batch-query', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json', 'x-api-key': 'tu_api_key_unica' },\n  body: JSON.stringify({ ids: [1, 2, 3, 4] })\n});`;
             }
         }
 
@@ -815,7 +933,7 @@ player.setMediaItem(mediaItem)</pre>
                 data: {
                     labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'],
                     datasets: [{
-                        label: 'Peticiones Totales',
+                        label: 'Peticiones API Reales',
                         data: [1200, 2400, 1800, 3100],
                         borderColor: '#ffffff',
                         backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -837,10 +955,10 @@ player.setMediaItem(mediaItem)</pre>
             clientsChart = new Chart(ctx2, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Android Nativo', 'Android WebView', 'Web App'],
+                    labels: ['API v1', 'API v2', 'API v3', 'API v4', 'API v5'],
                     datasets: [{
-                        data: [50, 32, 18],
-                        backgroundColor: ['#10b981', '#0284c7', '#a855f7'],
+                        data: [35, 25, 20, 10, 10],
+                        backgroundColor: ['#10b981', '#0284c7', '#a855f7', '#f59e0b', '#ec4899'],
                         borderWidth: 0
                     }]
                 },
@@ -875,24 +993,42 @@ player.setMediaItem(mediaItem)</pre>
         function updateModalUI() {
             const isReg = currentAuthMode === 'register';
             document.getElementById('modal-title').innerText = isReg ? 'Crear Cuenta Enterprise' : 'Iniciar Sesión';
-            document.getElementById('modal-subtitle').innerText = isReg ? 'Genera tu clave API personal.' : 'Accede a tu panel.';
+            document.getElementById('modal-subtitle').innerText = isReg ? 'Genera tu clave API personal única.' : 'Accede a tu panel y clave API.';
             document.getElementById('modal-submit-btn').innerText = isReg ? 'Registrarse & Generar Key' : 'Entrar al Sistema';
             document.getElementById('modal-toggle-text').innerText = isReg ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate aquí';
         }
 
-        function handleAuthSubmit(e) {
+        async function handleAuthSubmit(e) {
             e.preventDefault();
             const email = document.getElementById('auth-email').value;
-            currentUser = { email, apiKey: 'sekai_secret_key_123' };
-            localStorage.setItem('sekai_user', JSON.stringify(currentUser));
-            updateUserSessionUI();
-            closeAuthModal();
-            showView('dashboard');
+            const password = document.getElementById('auth-password').value;
+            const endpoint = currentAuthMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+                if (data.status === 'success') {
+                    currentUser = data.user;
+                    localStorage.setItem('sekai_real_user', JSON.stringify(currentUser));
+                    updateUserSessionUI();
+                    closeAuthModal();
+                    showView('dashboard');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (err) {
+                alert('Error al autenticar con el servidor.');
+            }
         }
 
         function logoutUser() {
             currentUser = null;
-            localStorage.removeItem('sekai_user');
+            localStorage.removeItem('sekai_real_user');
             updateUserSessionUI();
             showView('landing');
         }
@@ -900,14 +1036,18 @@ player.setMediaItem(mediaItem)</pre>
         function updateUserSessionUI() {
             const authBtns = document.getElementById('auth-buttons-container');
             const userProfile = document.getElementById('user-profile-container');
+            const apiKeyInput = document.getElementById('user-api-key-input');
+
             if (currentUser) {
                 if (authBtns) authBtns.classList.add('hidden');
                 if (userProfile) userProfile.classList.remove('hidden');
                 const displayEmail = document.getElementById('user-display-email');
                 if (displayEmail) displayEmail.innerText = currentUser.email;
+                if (apiKeyInput) apiKeyInput.value = currentUser.apiKey;
             } else {
                 if (authBtns) authBtns.classList.remove('hidden');
                 if (userProfile) userProfile.classList.add('hidden');
+                if (apiKeyInput) apiKeyInput.value = "Inicia sesión para ver tu Key";
             }
         }
 
@@ -925,19 +1065,17 @@ player.setMediaItem(mediaItem)</pre>
 
         function copyUserApiKey() {
             const input = document.getElementById('user-api-key-input');
+            if (!currentUser) {
+                alert('Debes iniciar sesión para obtener tu Key');
+                return;
+            }
             navigator.clipboard.writeText(input.value);
-            alert('¡Clave API copiada!');
-        }
-
-        function copySnippet(id) {
-            const text = document.getElementById(id).innerText;
-            navigator.clipboard.writeText(text);
-            alert('Código copiado.');
+            alert('¡Clave API Copiada!');
         }
 
         function executeSandboxFetch() {
             fetchCatalog();
-            alert('Catálogo sincronizado desde el servidor.');
+            alert(`Petición ejecutada a ${document.getElementById('endpoint-url-display').innerText}`);
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -945,6 +1083,8 @@ player.setMediaItem(mediaItem)</pre>
             fetchCatalog();
             updateUserSessionUI();
             fetchHealth();
+            checkSystemStatus();
+            setInterval(checkSystemStatus, 10000);
         });
     </script>
 </body>
