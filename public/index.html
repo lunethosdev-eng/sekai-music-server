@@ -2,7 +2,7 @@
 <html lang="es" class="dark scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sekai Enterprise API & Music Infrastructure</title>
     
     <!-- Tailwind CSS -->
@@ -18,9 +18,6 @@
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Canvas Confetti -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -44,7 +41,6 @@
                     animation: {
                         'liquid-shine': 'shine 8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'float': 'float 6s ease-in-out infinite',
-                        'pulse-glow': 'pulseGlow 3s infinite',
                     },
                     keyframes: {
                         shine: {
@@ -54,10 +50,6 @@
                         float: {
                             '0%, 100%': { transform: 'translateY(0px)' },
                             '50%': { transform: 'translateY(-10px)' }
-                        },
-                        pulseGlow: {
-                            '0%, 100%': { boxShadow: '0 0 20px rgba(255, 255, 255, 0.05)' },
-                            '50%': { boxShadow: '0 0 40px rgba(255, 255, 255, 0.15)' }
                         }
                     }
                 }
@@ -66,7 +58,6 @@
     </script>
 
     <style>
-        /* Custom Liquid Glass Aesthetics */
         body {
             background-color: #030305;
             color: #f1f5f9;
@@ -75,26 +66,25 @@
         }
 
         .glass-panel {
-            background: rgba(18, 20, 29, 0.55);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
+            background: rgba(18, 20, 29, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
         }
 
         .glass-card {
             background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.07);
-            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .glass-card:hover {
             background: rgba(255, 255, 255, 0.06);
             border-color: rgba(255, 255, 255, 0.18);
-            transform: translateY(-3px) scale(1.005);
-            box-shadow: 0 20px 40px -15px rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
         }
 
         .glass-button {
@@ -108,7 +98,6 @@
             background: rgba(255, 255, 255, 0.95);
             color: #000000;
             border-color: #ffffff;
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.25);
         }
 
         .glass-input {
@@ -116,31 +105,25 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             color: #ffffff;
-            transition: all 0.25s ease;
-        }
-
-        .glass-input:focus {
-            outline: none;
-            border-color: rgba(255, 255, 255, 0.4);
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
         }
 
         .ambient-glow {
             position: fixed;
-            width: 600px;
-            height: 600px;
+            width: 80vw;
+            max-width: 600px;
+            height: 80vw;
+            max-height: 600px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, rgba(0, 0, 0, 0) 70%);
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
             pointer-events: none;
             z-index: 0;
         }
 
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: #030305; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 9999px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 9999px; }
 
-        .view-section { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
+        .view-section { display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
         .view-section.active { display: block; opacity: 1; }
 
         .gradient-text-mono {
@@ -150,154 +133,165 @@
         }
     </style>
 </head>
-<body class="relative min-h-screen flex flex-col justify-between selection:bg-white selection:text-black">
+<body class="relative min-h-screen flex flex-col justify-between selection:bg-white selection:text-black pb-28 md:pb-24">
 
-    <!-- Elemento Audio para Reproducción de Stream OGG Real -->
+    <!-- Audio Element -->
     <audio id="main-audio-player" class="hidden"></audio>
 
-    <div class="ambient-glow top-[-200px] left-1/2 -translate-x-1/2 animate-liquid-shine"></div>
-    <div class="ambient-glow bottom-[-200px] right-[-100px] opacity-40"></div>
+    <div class="ambient-glow top-[-100px] left-1/2 -translate-x-1/2 animate-liquid-shine"></div>
 
-    <!-- MAIN NAVBAR -->
+    <!-- NAVBAR RESPONSIVE -->
     <header class="sticky top-0 z-50 glass-panel border-b border-white/10">
-        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
             
-            <a href="#" onclick="showView('landing')" class="flex items-center space-x-3 group">
-                <div class="w-10 h-10 rounded-2xl bg-white text-black font-heading font-black text-sm flex items-center justify-center tracking-tighter shadow-xl shadow-white/10 group-hover:scale-105 transition">
+            <!-- Logo -->
+            <a href="#" onclick="showView('landing')" class="flex items-center space-x-3 shrink-0">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white text-black font-heading font-black text-xs sm:text-sm flex items-center justify-center tracking-tighter shadow-xl">
                     SK
                 </div>
                 <div>
-                    <span class="font-heading font-extrabold text-lg tracking-wider text-white flex items-center gap-2">
-                        SEKAI <span class="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">v2.4 PRO</span>
+                    <span class="font-heading font-extrabold text-base sm:text-lg tracking-wider text-white flex items-center gap-1.5">
+                        SEKAI <span class="text-[9px] sm:text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">v2.4 PRO</span>
                     </span>
-                    <p class="text-[10px] text-zinc-400 font-mono tracking-wider uppercase">Enterprise Audio API</p>
+                    <p class="hidden sm:block text-[9px] text-zinc-400 font-mono tracking-wider uppercase">Enterprise Audio API</p>
                 </div>
             </a>
 
-            <nav class="hidden md:flex items-center space-x-1 bg-white/5 border border-white/10 p-1.5 rounded-full text-xs font-medium backdrop-blur-md">
-                <button onclick="showView('landing')" id="nav-landing" class="px-5 py-2 rounded-full text-white bg-white/10 transition">Overview</button>
-                <button onclick="showView('catalog')" id="nav-catalog" class="px-5 py-2 rounded-full text-zinc-400 hover:text-white transition">Catálogo Audio</button>
-                <button onclick="showView('docs')" id="nav-docs" class="px-5 py-2 rounded-full text-zinc-400 hover:text-white transition">API Single-Endpoint</button>
-                <button onclick="showView('dashboard')" id="nav-dashboard" class="px-5 py-2 rounded-full text-zinc-400 hover:text-white transition flex items-center gap-1.5">
+            <!-- Desktop Nav -->
+            <nav class="hidden lg:flex items-center space-x-1 bg-white/5 border border-white/10 p-1.5 rounded-full text-xs font-medium backdrop-blur-md">
+                <button onclick="showView('landing')" id="nav-landing" class="px-4 py-2 rounded-full text-white bg-white/10 transition">Overview</button>
+                <button onclick="showView('catalog')" id="nav-catalog" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition">Catálogo Audio</button>
+                <button onclick="showView('docs')" id="nav-docs" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition">API Single-Endpoint</button>
+                <button onclick="showView('dashboard')" id="nav-dashboard" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition flex items-center gap-1.5">
                     <i class="fa-solid fa-chart-line text-[10px]"></i> Dashboard
                 </button>
             </nav>
 
-            <div class="flex items-center space-x-3" id="auth-buttons-container">
-                <button onclick="openAuthModal('login')" class="text-xs font-semibold text-zinc-300 hover:text-white px-4 py-2.5 transition">
+            <!-- Auth Buttons Desktop -->
+            <div class="hidden sm:flex items-center space-x-2" id="auth-buttons-container">
+                <button onclick="openAuthModal('login')" class="text-xs font-semibold text-zinc-300 hover:text-white px-3 py-2 transition">
                     Iniciar Sesión
                 </button>
-                <button onclick="openAuthModal('register')" class="glass-button text-xs font-bold px-5 py-2.5 rounded-full flex items-center space-x-2">
-                    <span>Obtener API Key</span>
+                <button onclick="openAuthModal('register')" class="glass-button text-xs font-bold px-4 py-2 rounded-full flex items-center space-x-1.5">
+                    <span>Obtener Key</span>
                     <i class="fa-solid fa-arrow-right text-[10px]"></i>
                 </button>
             </div>
 
-            <div class="hidden items-center space-x-3" id="user-profile-container">
-                <button onclick="showView('dashboard')" class="flex items-center space-x-2.5 bg-white/5 border border-white/10 hover:border-white/30 px-3.5 py-1.5 rounded-full transition">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span id="user-display-email" class="text-xs font-mono font-medium text-zinc-200">dev@enterprise.com</span>
+            <!-- Profile Info Desktop -->
+            <div class="hidden sm:flex items-center space-x-2" id="user-profile-container">
+                <button onclick="showView('dashboard')" class="flex items-center space-x-2 bg-white/5 border border-white/10 hover:border-white/30 px-3 py-1.5 rounded-full transition max-w-[180px]">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                    <span id="user-display-email" class="text-xs font-mono font-medium text-zinc-200 truncate">dev@enterprise.com</span>
                 </button>
-                <button onclick="logoutUser()" title="Cerrar Sesión" class="w-9 h-9 rounded-full bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-white/10 flex items-center justify-center transition">
+                <button onclick="logoutUser()" title="Cerrar Sesión" class="w-8 h-8 rounded-full bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-white/10 flex items-center justify-center transition">
                     <i class="fa-solid fa-power-off text-xs"></i>
                 </button>
             </div>
 
+            <!-- Mobile Menu Toggle Button -->
+            <button onclick="toggleMobileMenu()" class="lg:hidden w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-300">
+                <i class="fa-solid fa-bars text-sm" id="mobile-menu-icon"></i>
+            </button>
+
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden border-t border-white/10 bg-black/95 px-4 py-4 space-y-3">
+            <nav class="flex flex-col space-y-2 text-sm">
+                <button onclick="showView('landing'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Overview</button>
+                <button onclick="showView('catalog'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Catálogo Audio</button>
+                <button onclick="showView('docs'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">API Endpoint</button>
+                <button onclick="showView('dashboard'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Dashboard</button>
+            </nav>
+            <div class="pt-2 border-t border-white/10 flex flex-col space-y-2" id="mobile-auth-container">
+                <button onclick="openAuthModal('login'); toggleMobileMenu()" class="w-full py-2.5 rounded-xl bg-white/5 text-zinc-200 text-xs font-bold">Iniciar Sesión</button>
+                <button onclick="openAuthModal('register'); toggleMobileMenu()" class="w-full py-2.5 rounded-xl bg-white text-black text-xs font-bold">Obtener API Key</button>
+            </div>
         </div>
     </header>
 
     <!-- VIEW 1: LANDING PAGE -->
-    <section id="view-landing" class="view-section active max-w-7xl mx-auto px-6 py-12 flex-grow w-full relative">
-        <div class="text-center space-y-8 max-w-4xl mx-auto pt-8">
-            <div class="inline-flex items-center space-x-2 bg-white/5 border border-white/15 px-4 py-1.5 rounded-full text-xs font-mono text-zinc-300 animate-float">
+    <section id="view-landing" class="view-section active max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex-grow w-full relative">
+        <div class="text-center space-y-6 max-w-4xl mx-auto pt-4 sm:pt-8">
+            <div class="inline-flex items-center space-x-2 bg-white/5 border border-white/15 px-3 py-1 rounded-full text-[11px] sm:text-xs font-mono text-zinc-300 animate-float">
                 <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
-                <span>Infraestructura Sonora para Apps Android & Web</span>
+                <span>Infraestructura Sonora para Android & Web</span>
             </div>
 
-            <h1 class="font-heading font-extrabold text-5xl md:text-7xl lg:text-8xl tracking-tight text-white leading-none">
-                Infraestructura Audio <br>
+            <h1 class="font-heading font-extrabold text-3xl sm:text-6xl lg:text-7xl tracking-tight text-white leading-tight">
+                Infraestructura Audio <br class="hidden sm:block">
                 <span class="gradient-text-mono italic">Ultra-Rápida.</span>
             </h1>
 
-            <p class="text-zinc-400 text-base md:text-lg font-normal max-w-2xl mx-auto leading-relaxed">
+            <p class="text-zinc-400 text-xs sm:text-base font-normal max-w-2xl mx-auto leading-relaxed">
                 Una sola llamada API autorizada entrega catálogo dinámico, metadatos sincronizados, letras LRC y streaming optimizado en OGG para Android Nativo, WebView y PWA.
             </p>
 
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                <button onclick="openAuthModal('register')" class="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-extrabold text-sm hover:bg-zinc-200 transition shadow-2xl shadow-white/20 flex items-center justify-center space-x-3">
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button onclick="openAuthModal('register')" class="w-full sm:w-auto px-6 py-3.5 rounded-full bg-white text-black font-extrabold text-xs sm:text-sm hover:bg-zinc-200 transition shadow-2xl flex items-center justify-center space-x-2">
                     <span>Crear Cuenta & Obtener API Key</span>
                     <i class="fa-solid fa-key"></i>
                 </button>
-                <button onclick="openAuthModal('login')" class="w-full sm:w-auto px-8 py-4 rounded-full glass-button font-bold text-sm text-white flex items-center justify-center space-x-2">
+                <button onclick="openAuthModal('login')" class="w-full sm:w-auto px-6 py-3.5 rounded-full glass-button font-bold text-xs sm:text-sm text-white flex items-center justify-center space-x-2">
                     <i class="fa-solid fa-right-to-bracket"></i>
                     <span>Acceder al Panel</span>
                 </button>
             </div>
         </div>
 
-        <div class="mt-16 glass-panel rounded-3xl p-6 md:p-8 border border-white/10 max-w-5xl mx-auto shadow-2xl relative overflow-hidden">
-            <div class="flex items-center justify-between pb-4 border-b border-white/10 text-xs font-mono text-zinc-400">
-                <div class="flex items-center space-x-2">
-                    <span class="w-3 h-3 rounded-full bg-red-500/40 border border-red-500/50"></span>
-                    <span class="w-3 h-3 rounded-full bg-yellow-500/40 border border-yellow-500/50"></span>
-                    <span class="w-3 h-3 rounded-full bg-green-500/40 border border-green-500/50"></span>
-                    <span class="ml-2 font-bold text-white">GET /api/v1/catalog</span>
+        <div class="mt-12 sm:mt-16 glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-white/10 max-w-5xl mx-auto shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between pb-3 border-b border-white/10 text-[10px] sm:text-xs font-mono text-zinc-400">
+                <div class="flex items-center space-x-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500/40"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/40"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500/40"></span>
+                    <span class="ml-2 font-bold text-white truncate">GET /api/v1/catalog</span>
                 </div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">200 OK</span>
-                    <span>14ms latency</span>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                 <div class="space-y-2">
-                    <div class="flex items-center justify-between text-xs font-mono text-zinc-400">
-                        <span>Petición cURL / Android HTTP</span>
+                    <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                        <span>Petición cURL</span>
                         <button onclick="copySnippet('curl-sample')" class="hover:text-white"><i class="fa-regular fa-copy"></i> Copiar</button>
                     </div>
-                    <pre id="curl-sample" class="bg-black/60 p-4 rounded-2xl border border-white/10 text-xs font-mono text-zinc-300 overflow-x-auto leading-relaxed">
+                    <pre id="curl-sample" class="bg-black/60 p-3 sm:p-4 rounded-xl border border-white/10 text-[10px] sm:text-xs font-mono text-zinc-300 overflow-x-auto">
 curl -X GET "/api/v1/catalog" \
-  -H "x-api-key: sekai_secret_key_123" \
-  -H "X-Client-App: com.sekai.musicplayer"</pre>
+  -H "x-api-key: sekai_secret_key_123"</pre>
                 </div>
 
                 <div class="space-y-2">
-                    <div class="flex items-center justify-between text-xs font-mono text-zinc-400">
-                        <span>Respuesta JSON Estructurada</span>
+                    <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                        <span>Respuesta JSON</span>
                         <span class="text-zinc-500">Live Sync</span>
                     </div>
-                    <pre class="bg-black/60 p-4 rounded-2xl border border-white/10 text-xs font-mono text-emerald-400 overflow-x-auto leading-relaxed max-h-44">
+                    <pre class="bg-black/60 p-3 sm:p-4 rounded-xl border border-white/10 text-[10px] sm:text-xs font-mono text-emerald-400 overflow-x-auto max-h-36">
 {
   "status": "success",
-  "total": 512,
-  "catalog": [
-    {
-      "id": 104,
-      "title": "Kaikai Kitan",
-      "artist": "Eve",
-      "genre": "Eve",
-      "stream_url": "/api/v1/stream/104",
-      "lyrics": "[00:01.00] Namu amida..."
-    }
-  ]
+  "total": 3277,
+  "catalog": [...]
 }</pre>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- VIEW 2: ENTERPRISE DASHBOARD -->
-    <section id="view-dashboard" class="view-section max-w-7xl mx-auto px-6 py-8 flex-grow w-full">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-8 border-b border-white/10">
+    <!-- VIEW 2: DASHBOARD -->
+    <section id="view-dashboard" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
             <div>
-                <h1 class="font-heading font-extrabold text-3xl text-white">Dashboard de Control & Analíticas API</h1>
-                <p class="text-xs font-mono text-zinc-400 mt-1">Monitoreo en tiempo real de peticiones, WebView Android y rendimiento.</p>
+                <h1 class="font-heading font-extrabold text-2xl sm:text-3xl text-white">Dashboard & Analíticas API</h1>
+                <p class="text-xs font-mono text-zinc-400 mt-1">Monitoreo en tiempo real del servidor y peticiones.</p>
             </div>
             
             <div class="flex items-center space-x-3">
-                <div class="glass-card px-4 py-2 rounded-2xl flex items-center space-x-3 text-xs font-mono">
+                <div class="glass-card px-3.5 py-2 rounded-xl flex items-center space-x-2 text-xs font-mono">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span class="text-zinc-300">Estado API: <strong class="text-white" id="db-health-status">Operacional</strong></span>
+                    <span class="text-zinc-300">Estado: <strong class="text-white" id="db-health-status">Cargando...</strong></span>
                 </div>
                 <button onclick="refreshDashboardMetrics()" class="glass-button p-2.5 rounded-xl text-xs text-zinc-300 hover:text-white">
                     <i class="fa-solid fa-rotate-right"></i>
@@ -305,27 +299,24 @@ curl -X GET "/api/v1/catalog" \
             </div>
         </div>
 
-        <div class="my-8 glass-panel p-6 rounded-3xl border border-white/10 relative overflow-hidden">
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div class="space-y-2">
+        <!-- Key Block -->
+        <div class="my-6 glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div class="space-y-2 w-full lg:w-auto">
                     <div class="flex items-center space-x-2">
-                        <span class="text-xs font-mono uppercase tracking-wider text-zinc-400 font-bold">Clave API Exclusiva</span>
-                        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono px-2 py-0.5 rounded-full">Activa</span>
+                        <span class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold">Clave API Exclusiva</span>
+                        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-mono px-2 py-0.5 rounded-full">Activa</span>
                     </div>
-                    <div class="flex items-center space-x-3 bg-black/80 p-3 rounded-2xl border border-white/10 max-w-2xl">
-                        <i class="fa-solid fa-key text-zinc-500 text-xs"></i>
-                        <input type="password" id="user-api-key-input" readonly value="sekai_secret_key_123" class="bg-transparent font-mono text-xs text-zinc-200 focus:outline-none flex-grow">
-                        <button onclick="toggleKeyVisibility()" class="text-xs text-zinc-400 hover:text-white px-2"><i class="fa-regular fa-eye" id="eye-icon"></i></button>
-                        <button onclick="copyUserApiKey()" class="bg-white/10 hover:bg-white text-white hover:text-black px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition">Copiar</button>
+                    <div class="flex items-center space-x-2 bg-black/80 p-2.5 rounded-xl border border-white/10 w-full sm:max-w-md">
+                        <i class="fa-solid fa-key text-zinc-500 text-xs pl-1"></i>
+                        <input type="password" id="user-api-key-input" readonly value="sekai_secret_key_123" class="bg-transparent font-mono text-xs text-zinc-200 focus:outline-none w-full min-w-0">
+                        <button onclick="toggleKeyVisibility()" class="text-xs text-zinc-400 hover:text-white px-1.5"><i class="fa-regular fa-eye" id="eye-icon"></i></button>
+                        <button onclick="copyUserApiKey()" class="bg-white/10 hover:bg-white text-white hover:text-black px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition shrink-0">Copiar</button>
                     </div>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-3">
-                    <button onclick="regenerateUserApiKey()" class="glass-button px-4 py-2.5 rounded-xl text-xs font-mono text-red-400 hover:text-red-300 flex items-center space-x-2">
-                        <i class="fa-solid fa-arrows-rotate"></i>
-                        <span>Regenerar Clave</span>
-                    </button>
-                    <div class="text-right font-mono text-xs text-zinc-400">
+                <div class="flex flex-wrap items-center gap-3 pt-2 lg:pt-0">
+                    <div class="font-mono text-xs text-zinc-400">
                         <p>Límite Streams: <strong class="text-white" id="stream-limit-display">4 Simultáneos</strong></p>
                         <p>Plan Actual: <strong class="text-emerald-400">Enterprise Unlimited</strong></p>
                     </div>
@@ -333,166 +324,165 @@ curl -X GET "/api/v1/catalog" \
             </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div class="glass-card p-5 rounded-3xl space-y-2">
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div class="glass-card p-4 rounded-2xl space-y-1">
                 <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
-                    <span>Total Canciones BD</span>
-                    <i class="fa-solid fa-database text-zinc-500"></i>
+                    <span class="truncate">Total Canciones BD</span>
+                    <i class="fa-solid fa-database text-zinc-500 text-xs"></i>
                 </div>
-                <div class="text-3xl font-heading font-extrabold text-white" id="stat-total-songs">0</div>
-                <div class="text-[11px] font-mono text-emerald-400">Ingesta automatizada</div>
+                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-total-songs">0</div>
+                <div class="text-[10px] font-mono text-emerald-400 truncate">Ingesta automatizada</div>
             </div>
 
-            <div class="glass-card p-5 rounded-3xl space-y-2">
+            <div class="glass-card p-4 rounded-2xl space-y-1">
                 <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
-                    <span>Uso este Mes</span>
-                    <i class="fa-solid fa-chart-simple text-zinc-500"></i>
+                    <span class="truncate">Peticiones API</span>
+                    <i class="fa-solid fa-chart-simple text-zinc-500 text-xs"></i>
                 </div>
-                <div class="text-3xl font-heading font-extrabold text-white">1,284,910</div>
-                <div class="text-[11px] font-mono text-emerald-400">+18.4% vs mes anterior</div>
+                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-total-requests">0</div>
+                <div class="text-[10px] font-mono text-emerald-400 truncate">Peticiones acumuladas</div>
             </div>
 
-            <div class="glass-card p-5 rounded-3xl space-y-2">
+            <div class="glass-card p-4 rounded-2xl space-y-1">
                 <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
-                    <span>Streams Activos</span>
-                    <i class="fa-solid fa-tower-cell text-emerald-400"></i>
+                    <span class="truncate">Streams Activos</span>
+                    <i class="fa-solid fa-tower-cell text-emerald-400 text-xs"></i>
                 </div>
-                <div class="text-3xl font-heading font-extrabold text-white" id="stat-active-streams">0 / 4</div>
-                <div class="text-[11px] font-mono text-zinc-400">Transcodificación FFmpeg OGG</div>
+                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-active-streams">0 / 4</div>
+                <div class="text-[10px] font-mono text-zinc-400 truncate">Transcodificación FFmpeg</div>
             </div>
 
-            <div class="glass-card p-5 rounded-3xl space-y-2">
+            <div class="glass-card p-4 rounded-2xl space-y-1">
                 <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
-                    <span>Servidor Uptime</span>
-                    <i class="fa-solid fa-bolt text-yellow-400"></i>
+                    <span class="truncate">Uptime</span>
+                    <i class="fa-solid fa-bolt text-yellow-400 text-xs"></i>
                 </div>
-                <div class="text-3xl font-heading font-extrabold text-white" id="stat-uptime">0s</div>
-                <div class="text-[11px] font-mono text-emerald-400">Servidores Render API</div>
+                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white truncate" id="stat-uptime">0s</div>
+                <div class="text-[10px] font-mono text-emerald-400 truncate">Servidor Render</div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div class="lg:col-span-2 glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="font-heading font-bold text-lg text-white">Volumen de Peticiones API</h3>
-                        <p class="text-xs font-mono text-zinc-400">Histórico de tráfico global</p>
-                    </div>
+            <div class="lg:col-span-2 glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10 space-y-4">
+                <div>
+                    <h3 class="font-heading font-bold text-base text-white">Volumen de Peticiones API</h3>
+                    <p class="text-xs font-mono text-zinc-400">Uso estimado de tráfico</p>
                 </div>
-                <div class="h-64 w-full">
+                <div class="h-48 sm:h-64 w-full">
                     <canvas id="requestsChart"></canvas>
                 </div>
             </div>
 
-            <div class="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
+            <div class="glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10 space-y-4">
                 <div>
-                    <h3 class="font-heading font-bold text-lg text-white">Distribución de Clientes</h3>
+                    <h3 class="font-heading font-bold text-base text-white">Distribución de Clientes</h3>
                     <p class="text-xs font-mono text-zinc-400">Orígenes detectados</p>
                 </div>
-                <div class="h-64 w-full flex items-center justify-center">
+                <div class="h-48 sm:h-64 w-full flex items-center justify-center">
                     <canvas id="clientsChart"></canvas>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- VIEW 3: MUSIC CATALOG & PLAYER -->
-    <section id="view-catalog" class="view-section max-w-7xl mx-auto px-6 py-8 flex-grow w-full space-y-6">
-        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+    <!-- VIEW 3: MUSIC CATALOG -->
+    <section id="view-catalog" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full space-y-6">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-3">
             <div class="relative w-full md:w-1/2">
                 <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-zinc-500 text-xs"></i>
-                <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Buscar por canción, artista o género..." class="w-full glass-input pl-11 pr-4 py-3 rounded-2xl text-xs font-mono placeholder-zinc-500">
+                <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Buscar canción, artista o género..." class="w-full glass-input pl-10 pr-4 py-2.5 rounded-xl text-xs font-mono">
             </div>
 
-            <div class="flex items-center space-x-3 w-full md:w-auto overflow-x-auto pb-1" id="genre-filters">
-                <button onclick="setGenreFilter('')" class="genre-btn px-4 py-2 rounded-xl text-xs font-semibold bg-white text-black whitespace-nowrap shadow-lg">
+            <div class="flex items-center space-x-2 w-full md:w-auto overflow-x-auto pb-2 scrollbar-none" id="genre-filters">
+                <button onclick="setGenreFilter('')" class="genre-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-black whitespace-nowrap shadow">
                     Todos
                 </button>
             </div>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="catalog-grid">
-            <!-- Renderizado dinámico desde backend -->
+        <!-- Adaptable Responsive Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4" id="catalog-grid">
+            <!-- Renderizado dinámico -->
         </div>
 
-        <div class="pt-6 border-t border-white/10">
-            <button onclick="toggleAdminPanel()" class="glass-button px-5 py-2.5 rounded-2xl text-xs font-mono text-zinc-300 hover:text-white flex items-center space-x-2">
+        <div class="pt-4 border-t border-white/10">
+            <button onclick="toggleAdminPanel()" class="glass-button px-4 py-2 rounded-xl text-xs font-mono text-zinc-300 hover:text-white flex items-center space-x-2">
                 <i class="fa-solid fa-plus text-xs"></i>
                 <span>Añadir Canción Manual al Servidor</span>
             </button>
         </div>
 
-        <div id="admin-panel" class="hidden glass-panel p-6 rounded-3xl border border-amber-500/30 space-y-4">
-            <h3 class="text-xs font-bold text-amber-400 font-mono uppercase tracking-wider">Inyectar Canción en Base de Datos Supabase</h3>
+        <div id="admin-panel" class="hidden glass-panel p-4 sm:p-6 rounded-2xl border border-amber-500/30 space-y-4">
+            <h3 class="text-xs font-bold text-amber-400 font-mono uppercase tracking-wider">Inyectar Canción en Supabase</h3>
             <form id="upload-form" onsubmit="addCustomSong(event)" class="space-y-3">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <input type="text" id="song-title" required placeholder="Título de la pista" class="glass-input p-3 rounded-xl text-xs">
-                    <input type="text" id="song-artist" required placeholder="Artista" class="glass-input p-3 rounded-xl text-xs">
+                    <input type="text" id="song-title" required placeholder="Título de la pista" class="glass-input p-2.5 rounded-xl text-xs">
+                    <input type="text" id="song-artist" required placeholder="Artista" class="glass-input p-2.5 rounded-xl text-xs">
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <input type="text" id="song-genre" placeholder="Género" class="glass-input p-3 rounded-xl text-xs">
-                    <input type="number" id="song-duration" value="180" placeholder="Duración (seg)" class="glass-input p-3 rounded-xl text-xs">
-                    <input type="url" id="song-audio-url" required placeholder="URL Audio SoundCloud / YouTube" class="glass-input p-3 rounded-xl text-xs">
+                    <input type="text" id="song-genre" placeholder="Género" class="glass-input p-2.5 rounded-xl text-xs">
+                    <input type="number" id="song-duration" value="180" placeholder="Duración (seg)" class="glass-input p-2.5 rounded-xl text-xs">
+                    <input type="url" id="song-audio-url" required placeholder="URL SoundCloud / YouTube" class="glass-input p-2.5 rounded-xl text-xs">
                 </div>
-                <input type="url" id="song-cover-url" placeholder="URL Carátula HD" class="w-full glass-input p-3 rounded-xl text-xs">
-                <textarea id="song-lyrics" placeholder="Letra (Sincronizada LRC o texto)..." class="w-full glass-input p-3 rounded-xl text-xs h-20"></textarea>
-                <button type="submit" class="w-full py-3 bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs rounded-xl transition shadow-lg">
+                <input type="url" id="song-cover-url" placeholder="URL Carátula HD" class="w-full glass-input p-2.5 rounded-xl text-xs">
+                <textarea id="song-lyrics" placeholder="Letra LRC..." class="w-full glass-input p-2.5 rounded-xl text-xs h-20"></textarea>
+                <button type="submit" class="w-full py-2.5 bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs rounded-xl transition shadow-lg">
                     Guardar e Inyectar en Servidor API
                 </button>
             </form>
         </div>
     </section>
 
-    <!-- VIEW 4: API DOCUMENTATION & SANDBOX -->
-    <section id="view-docs" class="view-section max-w-7xl mx-auto px-6 py-8 flex-grow w-full space-y-6">
-        <div class="glass-panel p-8 rounded-3xl border border-white/10 space-y-6">
-            <div class="flex items-center justify-between border-b border-white/10 pb-6">
+    <!-- VIEW 4: API DOCUMENTATION -->
+    <section id="view-docs" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full space-y-6">
+        <div class="glass-panel p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/10 space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-4 gap-2">
                 <div>
-                    <h2 class="font-heading font-extrabold text-2xl text-white">API Single-Endpoint Universal</h2>
+                    <h2 class="font-heading font-extrabold text-xl sm:text-2xl text-white">API Single-Endpoint Universal</h2>
                     <p class="text-xs font-mono text-zinc-400 mt-1">Catálogo dinámico, metadatos y streaming directo en OGG.</p>
                 </div>
-                <span class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-xs font-bold rounded-xl">GET /api/v1/catalog</span>
+                <span class="self-start sm:self-auto px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-xs font-bold rounded-lg">GET /api/v1/catalog</span>
             </div>
 
             <div class="space-y-3">
                 <label class="text-xs font-mono text-zinc-300 font-bold">Probar Endpoint en Tiempo Real:</label>
                 <div class="flex flex-col sm:flex-row items-center gap-2">
-                    <div class="flex items-center bg-black/80 px-4 py-3 rounded-2xl border border-white/10 flex-grow w-full">
-                        <span class="text-xs font-mono text-emerald-400 font-bold mr-2">GET</span>
+                    <div class="flex items-center bg-black/80 px-3 py-2.5 rounded-xl border border-white/10 flex-grow w-full min-w-0">
+                        <span class="text-xs font-mono text-emerald-400 font-bold mr-2 shrink-0">GET</span>
                         <code class="text-xs font-mono text-zinc-300 truncate" id="endpoint-url-display">/api/v1/catalog</code>
                     </div>
-                    <button onclick="executeSandboxFetch()" class="w-full sm:w-auto px-6 py-3 bg-white text-black hover:bg-zinc-200 font-bold text-xs rounded-2xl font-mono transition flex items-center justify-center space-x-2">
+                    <button onclick="executeSandboxFetch()" class="w-full sm:w-auto px-5 py-2.5 bg-white text-black hover:bg-zinc-200 font-bold text-xs rounded-xl font-mono transition flex items-center justify-center space-x-2 shrink-0">
                         <i class="fa-solid fa-play"></i>
                         <span>Ejecutar Petición</span>
                     </button>
                 </div>
             </div>
 
-            <div class="space-y-4 pt-4">
+            <div class="space-y-4 pt-2">
                 <h3 class="text-xs font-mono text-zinc-400 uppercase tracking-wider font-bold">Ejemplos de Integración Directa</h3>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-black/80 p-4 rounded-2xl border border-white/10 space-y-2">
+                    <div class="bg-black/80 p-3 sm:p-4 rounded-xl border border-white/10 space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="text-[10px] font-bold text-amber-400 font-mono">JavaScript / Web App</span>
                             <button onclick="copySnippet('js-code')" class="text-xs text-zinc-400 hover:text-white"><i class="fa-regular fa-copy"></i></button>
                         </div>
-                        <pre id="js-code" class="text-xs font-mono text-zinc-300 overflow-x-auto leading-relaxed">
+                        <pre id="js-code" class="text-[11px] font-mono text-zinc-300 overflow-x-auto">
 const res = await fetch('/api/v1/catalog');
 const { catalog } = await res.json();
 console.log(catalog);</pre>
                     </div>
 
-                    <div class="bg-black/80 p-4 rounded-2xl border border-white/10 space-y-2">
+                    <div class="bg-black/80 p-3 sm:p-4 rounded-xl border border-white/10 space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="text-[10px] font-bold text-emerald-400 font-mono">Android Kotlin / ExoPlayer Stream</span>
                             <button onclick="copySnippet('kt-code')" class="text-xs text-zinc-400 hover:text-white"><i class="fa-regular fa-copy"></i></button>
                         </div>
-                        <pre id="kt-code" class="text-xs font-mono text-zinc-300 overflow-x-auto leading-relaxed">
+                        <pre id="kt-code" class="text-[11px] font-mono text-zinc-300 overflow-x-auto">
 val streamUrl = "https://tu-dominio.com/api/v1/stream/104"
 val mediaItem = MediaItem.fromUri(streamUrl)
-player.setMediaItem(mediaItem)
-player.prepare()</pre>
+player.setMediaItem(mediaItem)</pre>
                     </div>
                 </div>
             </div>
@@ -501,35 +491,35 @@ player.prepare()</pre>
 
     <!-- AUTHENTICATION MODAL -->
     <div id="auth-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl hidden flex items-center justify-center p-4">
-        <div class="glass-panel max-w-md w-full p-8 rounded-3xl relative border border-white/15 space-y-6 shadow-2xl">
-            <button onclick="closeAuthModal()" class="absolute top-5 right-5 text-zinc-400 hover:text-white">
+        <div class="glass-panel max-w-sm w-full p-6 rounded-2xl relative border border-white/15 space-y-4 shadow-2xl">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
 
-            <div class="text-center space-y-2">
-                <div class="w-12 h-12 rounded-2xl bg-white text-black font-heading font-black text-lg flex items-center justify-center mx-auto">
+            <div class="text-center space-y-1">
+                <div class="w-10 h-10 rounded-xl bg-white text-black font-heading font-black text-sm flex items-center justify-center mx-auto">
                     SK
                 </div>
-                <h3 class="font-heading font-extrabold text-2xl text-white" id="modal-title">Iniciar Sesión</h3>
-                <p class="text-xs text-zinc-400 font-mono" id="modal-subtitle">Accede a tu panel e interfaz de control.</p>
+                <h3 class="font-heading font-extrabold text-xl text-white" id="modal-title">Iniciar Sesión</h3>
+                <p class="text-[11px] text-zinc-400 font-mono" id="modal-subtitle">Accede a tu panel e interfaz de control.</p>
             </div>
 
-            <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-3">
                 <div>
-                    <label class="text-xs font-mono text-zinc-300">Correo Electrónico:</label>
-                    <input type="email" id="auth-email" required placeholder="developer@empresa.com" class="w-full glass-input p-3.5 rounded-2xl text-xs mt-1">
+                    <label class="text-[11px] font-mono text-zinc-300">Correo Electrónico:</label>
+                    <input type="email" id="auth-email" required placeholder="developer@empresa.com" class="w-full glass-input p-2.5 rounded-xl text-xs mt-1">
                 </div>
                 <div>
-                    <label class="text-xs font-mono text-zinc-300">Contraseña:</label>
-                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full glass-input p-3.5 rounded-2xl text-xs mt-1">
+                    <label class="text-[11px] font-mono text-zinc-300">Contraseña:</label>
+                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full glass-input p-2.5 rounded-xl text-xs mt-1">
                 </div>
 
-                <button type="submit" class="w-full py-3.5 bg-white text-black font-extrabold text-xs rounded-2xl hover:bg-zinc-200 transition shadow-xl font-mono uppercase tracking-wider">
+                <button type="submit" class="w-full py-2.5 bg-white text-black font-extrabold text-xs rounded-xl hover:bg-zinc-200 transition shadow-xl font-mono uppercase tracking-wider">
                     <span id="modal-submit-btn">Entrar al Sistema</span>
                 </button>
             </form>
 
-            <div class="text-center pt-2">
+            <div class="text-center pt-1">
                 <button onclick="toggleAuthMode()" class="text-xs font-mono text-zinc-400 hover:text-white underline">
                     <span id="modal-toggle-text">¿No tienes cuenta? Regístrate aquí</span>
                 </button>
@@ -538,28 +528,28 @@ player.prepare()</pre>
     </div>
 
     <!-- PERSISTENT MUSIC PLAYER BAR -->
-    <div id="player-bar" class="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-white/10 px-6 py-3 transition-all transform translate-y-full">
-        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <div id="player-bar" class="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-white/10 px-4 py-2.5 transition-all transform translate-y-full">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
             
-            <div class="flex items-center space-x-3 w-1/3">
-                <img id="player-cover" src="https://via.placeholder.com/150" class="w-12 h-12 object-cover rounded-xl bg-zinc-900 border border-white/10">
+            <div class="flex items-center space-x-2.5 w-1/2 sm:w-1/3 min-w-0">
+                <img id="player-cover" src="https://via.placeholder.com/150" class="w-10 h-10 object-cover rounded-lg bg-zinc-900 border border-white/10 shrink-0">
                 <div class="truncate">
                     <h4 id="player-title" class="font-bold text-white text-xs truncate">Selecciona una pista</h4>
-                    <p id="player-artist" class="text-[11px] text-zinc-400 truncate">--</p>
+                    <p id="player-artist" class="text-[10px] text-zinc-400 truncate">--</p>
                 </div>
             </div>
 
-            <div class="flex items-center justify-center space-x-4 w-1/3">
-                <button onclick="togglePlay()" id="btn-play" class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition shadow-lg">
+            <div class="flex items-center justify-center space-x-2 sm:space-x-3 shrink-0">
+                <button onclick="togglePlay()" id="btn-play" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition shadow-lg">
                     <i class="fa-solid fa-play text-xs ml-0.5"></i>
                 </button>
-                <button onclick="openLyricsModal()" class="text-xs text-zinc-300 hover:text-white px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 font-mono">
-                    Ver Letra
+                <button onclick="openLyricsModal()" class="text-[11px] text-zinc-300 hover:text-white px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 font-mono">
+                    Letra
                 </button>
             </div>
 
-            <div class="flex items-center justify-end w-1/3">
-                <span id="player-source" class="text-[10px] font-mono px-2.5 py-1 rounded-lg bg-white/10 text-zinc-300 border border-white/10">STREAMING OGG</span>
+            <div class="hidden sm:flex items-center justify-end w-1/3">
+                <span id="player-source" class="text-[9px] font-mono px-2 py-0.5 rounded bg-white/10 text-zinc-300 border border-white/10 truncate">STREAMING OGG</span>
             </div>
 
         </div>
@@ -567,16 +557,16 @@ player.prepare()</pre>
 
     <!-- LYRICS MODAL -->
     <div id="lyrics-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl hidden flex items-center justify-center p-4">
-        <div class="glass-panel max-w-lg w-full p-6 rounded-3xl relative space-y-4 border border-white/15">
+        <div class="glass-panel max-w-md w-full p-5 rounded-2xl relative space-y-3 border border-white/15">
             <button onclick="closeLyricsModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
-            <h3 class="font-heading font-extrabold text-lg text-white">Letra de la Canción</h3>
-            <div id="lyrics-content" class="text-xs font-mono text-zinc-300 max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed bg-black/60 p-4 rounded-2xl border border-white/10"></div>
+            <h3 class="font-heading font-extrabold text-base text-white">Letra de la Canción</h3>
+            <div id="lyrics-content" class="text-xs font-mono text-zinc-300 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed bg-black/60 p-3 rounded-xl border border-white/10"></div>
         </div>
     </div>
 
-    <!-- LOGIC SYSTEM & REAL API CONNECTIVITY -->
+    <!-- SCRIPT & BACKEND INTEGRATION -->
     <script>
         let currentAuthMode = 'login';
         let currentUser = JSON.parse(localStorage.getItem('sekai_user')) || null;
@@ -591,13 +581,16 @@ player.prepare()</pre>
         const audioElement = document.getElementById('main-audio-player');
         const defaultGenres = ["Eve", "Trío Los Panchos", "Post-Punk", "City Pop", "Boleros", "Indie Rock", "Lofi Beats", "Anime OST", "J-Pop", "Vocaloid"];
 
-        // Elementos UI del reproductor
         audioElement.addEventListener('ended', () => {
             isPlaying = false;
             updatePlayButton();
         });
 
-        // 1. CARGA INICIAL Y CONEXIÓN A BACKEND
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
         async function fetchCatalog() {
             try {
                 const res = await fetch('/api/v1/catalog');
@@ -623,11 +616,17 @@ player.prepare()</pre>
                     document.getElementById('stat-active-streams').innerText = `${data.streams} / ${data.max_streams}`;
                     document.getElementById('stream-limit-display').innerText = `${data.max_streams} Simultáneos`;
                     document.getElementById('stat-uptime').innerText = `${data.uptime_sec}s`;
+                    
+                    if (data.total_songs) {
+                        document.getElementById('stat-total-songs').innerText = data.total_songs;
+                    }
+                    if (data.total_api_requests !== undefined) {
+                        document.getElementById('stat-total-requests').innerText = data.total_api_requests;
+                    }
                 }
             } catch (_) {}
         }
 
-        // 2. NAVEGACIÓN ENTRE VISTAS
         function showView(viewId) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById(`view-${viewId}`).classList.add('active');
@@ -636,8 +635,8 @@ player.prepare()</pre>
                 const btn = document.getElementById(`nav-${nav}`);
                 if (btn) {
                     btn.className = (nav === viewId) 
-                        ? 'px-5 py-2 rounded-full text-white bg-white/10 font-bold transition'
-                        : 'px-5 py-2 rounded-full text-zinc-400 hover:text-white transition';
+                        ? 'px-4 py-2 rounded-full text-white bg-white/10 font-bold transition'
+                        : 'px-4 py-2 rounded-full text-zinc-400 hover:text-white transition';
                 }
             });
 
@@ -647,7 +646,6 @@ player.prepare()</pre>
             }
         }
 
-        // 3. REPRODUCTOR DE AUDIO REAL (OGG STREAMING)
         function playTrack(song) {
             currentSong = song;
             document.getElementById('player-title').innerText = song.title;
@@ -664,7 +662,6 @@ player.prepare()</pre>
                 updatePlayButton();
             }).catch(err => {
                 console.error("Error reproduciendo audio:", err);
-                alert("No se pudo iniciar el stream de audio.");
             });
         }
 
@@ -697,7 +694,6 @@ player.prepare()</pre>
             document.getElementById('lyrics-modal').classList.add('hidden');
         }
 
-        // 4. BÚSQUEDA Y FILTRADO
         function handleSearch(query) {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(async () => {
@@ -722,7 +718,7 @@ player.prepare()</pre>
             defaultGenres.forEach(g => {
                 const btn = document.createElement('button');
                 btn.onclick = () => setGenreFilter(g);
-                btn.className = "genre-btn px-4 py-2 rounded-xl text-xs font-semibold glass-card text-zinc-300 hover:text-white whitespace-nowrap transition";
+                btn.className = "genre-btn px-3 py-1.5 rounded-lg text-xs font-semibold glass-card text-zinc-300 hover:text-white whitespace-nowrap transition";
                 btn.innerText = g;
                 container.appendChild(btn);
             });
@@ -746,28 +742,27 @@ player.prepare()</pre>
             }
 
             grid.innerHTML = data.map(song => `
-                <div class="glass-card rounded-2xl p-3 flex flex-col justify-between group cursor-pointer" onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")})'>
-                    <div class="relative aspect-square rounded-xl bg-zinc-900 overflow-hidden mb-2">
-                        <img src="${song.cover_url || 'https://via.placeholder.com/300'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                <div class="glass-card rounded-xl p-2.5 flex flex-col justify-between group cursor-pointer" onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")})'>
+                    <div class="relative aspect-square rounded-lg bg-zinc-900 overflow-hidden mb-2">
+                        <img src="${song.cover_url || 'https://via.placeholder.com/300'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                         <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                            <div class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-xl">
+                            <div class="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-lg">
                                 <i class="fa-solid fa-play text-xs ml-0.5"></i>
                             </div>
                         </div>
                     </div>
                     <div>
                         <h4 class="font-bold text-white text-xs line-clamp-1">${song.title}</h4>
-                        <p class="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">${song.artist}</p>
+                        <p class="text-[10px] text-zinc-400 line-clamp-1 mt-0.5">${song.artist}</p>
                     </div>
-                    <div class="mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono text-zinc-500">
-                        <span class="bg-white/10 px-2 py-0.5 rounded text-zinc-300">${song.genre || 'General'}</span>
+                    <div class="mt-2 pt-1.5 border-t border-white/10 flex items-center justify-between text-[9px] font-mono text-zinc-500">
+                        <span class="bg-white/10 px-1.5 py-0.5 rounded text-zinc-300 truncate max-w-[70px]">${song.genre || 'General'}</span>
                         <span>${(song.source || 'db').toUpperCase()}</span>
                     </div>
                 </div>
             `).join('');
         }
 
-        // 5. SUBIDA MANUAL DE CANCIONES (POST /api/upload)
         function toggleAdminPanel() {
             document.getElementById('admin-panel').classList.toggle('hidden');
         }
@@ -808,7 +803,6 @@ player.prepare()</pre>
             }
         }
 
-        // 6. DASHBOARD Y AUTENTICACIÓN
         function initDashboardCharts() {
             const ctx1 = document.getElementById('requestsChart').getContext('2d');
             const ctx2 = document.getElementById('clientsChart').getContext('2d');
@@ -822,7 +816,7 @@ player.prepare()</pre>
                     labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'],
                     datasets: [{
                         label: 'Peticiones Totales',
-                        data: [280000, 340000, 290000, 412800],
+                        data: [1200, 2400, 1800, 3100],
                         borderColor: '#ffffff',
                         backgroundColor: 'rgba(255, 255, 255, 0.05)',
                         fill: true,
@@ -900,19 +894,20 @@ player.prepare()</pre>
             currentUser = null;
             localStorage.removeItem('sekai_user');
             updateUserSessionUI();
-            showView('landing');aja
+            showView('landing');
         }
 
         function updateUserSessionUI() {
             const authBtns = document.getElementById('auth-buttons-container');
             const userProfile = document.getElementById('user-profile-container');
             if (currentUser) {
-                authBtns.classList.add('hidden');
-                userProfile.classList.remove('hidden');
-                document.getElementById('user-display-email').innerText = currentUser.email;
+                if (authBtns) authBtns.classList.add('hidden');
+                if (userProfile) userProfile.classList.remove('hidden');
+                const displayEmail = document.getElementById('user-display-email');
+                if (displayEmail) displayEmail.innerText = currentUser.email;
             } else {
-                authBtns.classList.remove('hidden');
-                userProfile.classList.add('hidden');
+                if (authBtns) authBtns.classList.remove('hidden');
+                if (userProfile) userProfile.classList.add('hidden');
             }
         }
 
@@ -945,7 +940,6 @@ player.prepare()</pre>
             alert('Catálogo sincronizado desde el servidor.');
         }
 
-        // Inicialización DOM
         window.addEventListener('DOMContentLoaded', () => {
             renderGenreFilters();
             fetchCatalog();
@@ -955,4 +949,3 @@ player.prepare()</pre>
     </script>
 </body>
 </html>
-
