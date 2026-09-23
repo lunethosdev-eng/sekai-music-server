@@ -8,8 +8,9 @@ const NodeCache = require('node-cache');
 const { createClient } = require('@supabase/supabase-js');
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const { PassThrough } = require('stream');
+const crypto = require('crypto');
 
-// Audio stream (YouTube / SoundCloud → OGG para la app)
+// Configuración del motor de streaming de audio
 const play = require('play-dl');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
@@ -22,13 +23,13 @@ app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
 const RENDER_URL = process.env.RENDER_URL || 'https://sekai-music-server.onrender.com';
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'sekai_secret_key_123';
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'sekai_admin_master_key_2026';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-    console.error('❌ Faltan SUPABASE_URL y SUPABASE_KEY en las variables de entorno.');
+    console.error('❌ Error Crítico: Faltan SUPABASE_URL y SUPABASE_KEY en las variables de entorno.');
     process.exit(1);
 }
 
@@ -39,7 +40,15 @@ let soundcloudClientId = 'iZea6V13B2S91I1B1i0x90nI0N6N9p6a';
 let isScraperRunning = false;
 let scraperCancelRequested = false;
 
-// Contador de peticiones global
+// Estado Global del Sistema (Mantenimiento y Anuncios controlados vía Discord)
+const systemState = {
+    maintenance: false,
+    maintenanceMessage: 'El sistema se encuentra en mantenimiento programado. Por favor, reintente en unos minutos.',
+    announcement: null,
+    announcementTimestamp: null
+};
+
+// Contador de Peticiones Globales
 let totalApiRequests = 0;
 app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
@@ -48,18 +57,32 @@ app.use((req, res, next) => {
     next();
 });
 
-// User Agents para rotación anti-bloqueo
+// Middleware Global de Verificación de Mantenimiento
+const checkMaintenance = (req, res, next) => {
+    if (systemState.maintenance && !req.path.startsWith('/api/system/') && !req.path.startsWith('/api/health')) {
+        return res.status(530).json({
+            status: 'maintenance',
+            message: systemState.maintenanceMessage,
+            timestamp: new Date().toISOString()
+        });
+    }
+    next();
+};
+app.use(checkMaintenance);
+
+// User Agents para Rotación Anti-Bloqueos
 const USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1'
 ];
 
 function getRandomUserAgent() {
     return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 }
 
-// Configuración de cookies en play-dl
+// Inicialización de Cookies de Youtube en Play-DL
 async function initPlayDl() {
     try {
         const youtubeCookie = process.env.YOUTUBE_COOKIE;
@@ -69,19 +92,19 @@ async function initPlayDl() {
                     cookie: youtubeCookie
                 }
             });
-            console.log('🔑 Cookies de YouTube cargadas correctamente en play-dl.');
+            console.log('🔑 Cookies de YouTube configuradas correctamente.');
         } else {
-            console.warn('⚠️ No se encontró YOUTUBE_COOKIE en .env. YouTube podría limitar o bloquear peticiones.');
+            console.warn('⚠️ Advertencia: No se encontró YOUTUBE_COOKIE en .env.');
         }
     } catch (err) {
         console.error('❌ Error configurando cookies en play-dl:', err.message);
     }
 }
 
-// Límite de streams simultáneos
+// Control de Concurrencia de Streams
 const streamConcurrency = {
     current: 0,
-    max: Number(process.env.MAX_STREAMS || 4),
+    max: Number(process.env.MAX_STREAMS || 8),
 };
 
 const discordClient = new Client({
@@ -94,17 +117,73 @@ const discordClient = new Client({
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const requireAuth = (req, res, next) => {
-    const apiKey = req.headers['x-api-key'];
-    if (apiKey && apiKey === ADMIN_API_KEY) return next();
-    return res.status(401).json({ status: 'error', message: 'No autorizado.' });
+// Generador de Claves API Únicas por Usuario
+function generateUniqueApiKey() {
+    return 'sk_live_' + crypto.randomBytes(24).toString('hex');
+}
+
+// Middleware de Autenticación de API Key Real (Validación en Supabase / Master Key)
+const requireApiKey = async (req, res, next) => {
+    const apiKey = req.headers['x-api-key'] || req.query.api_key;
+    if (!apiKey) {
+        return res.status(401).json({ status: 'error', message: 'API Key requerida en cabecera x-api-key o parámetro ?api_key=' });
+    }
+
+    if (apiKey === ADMIN_API_KEY) {
+        req.user = { email: 'admin@sekai.internal', role: 'admin' };
+        return next();
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('api_key', apiKey)
+            .maybeSingle();
+
+        if (error || !data) {
+            return res.status(403).json({ status: 'error', message: 'API Key inválida o no registrada.' });
+        }
+
+        req.user = data;
+        next();
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: 'Error al verificar la clave de API.' });
+    }
 };
 
-function enrichSong(song) {
+function enrichSongV1(song) {
     if (!song || song.id == null) return song;
     return {
         ...song,
         stream_url: `${RENDER_URL}/api/v1/stream/${song.id}`,
+    };
+}
+
+function enrichSongV2(song) {
+    if (!song || song.id == null) return song;
+    return {
+        ...song,
+        stream_url: `${RENDER_URL}/api/v2/stream/${song.id}`,
+        high_res_cover: song.cover_url || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800&q=80',
+        has_synced_lyrics: Boolean(song.lyrics && song.lyrics.startsWith('[')),
+        api_version: 'v2'
+    };
+}
+
+function enrichSongV3(song) {
+    if (!song || song.id == null) return song;
+    return {
+        id: song.id,
+        title: song.title,
+        artist: song.artist,
+        genre: song.genre,
+        duration: song.duration,
+        source: song.source,
+        stream_url: `${RENDER_URL}/api/v3/stream/${song.id}?codec=ogg&bitrate=128k`,
+        cover_url: song.cover_url,
+        lyrics: song.lyrics,
+        api_version: 'v3'
     };
 }
 
@@ -117,16 +196,14 @@ function cleanTitleString(title) {
         .trim();
 }
 
-// ============================================================
-// 1. SCRAPER DE LETRAS (LRCLIB API)
-// ============================================================
+// Scraper de Letras Sincronizadas
 async function fetchSyncedLyrics(title, artist) {
     try {
         const cleanTitle = cleanTitleString(title);
         const res = await axios.get('https://lrclib.net/api/get', {
             params: { track_name: cleanTitle, artist_name: artist },
             timeout: 4000,
-            headers: { 'User-Agent': 'SekaiMusic/2.0' }
+            headers: { 'User-Agent': 'SekaiMusicEngine/3.0' }
         });
 
         if (res.data) {
@@ -138,7 +215,7 @@ async function fetchSyncedLyrics(title, artist) {
             const searchRes = await axios.get('https://lrclib.net/api/search', {
                 params: { q: `${artist} ${title}` },
                 timeout: 4000,
-                headers: { 'User-Agent': 'SekaiMusic/2.0' }
+                headers: { 'User-Agent': 'SekaiMusicEngine/3.0' }
             });
 
             if (searchRes.data && searchRes.data.length > 0) {
@@ -147,12 +224,10 @@ async function fetchSyncedLyrics(title, artist) {
             }
         } catch (_) {}
     }
-    return '[00:00.00] Letra no disponible';
+    return '[00:00.00] Letra no disponible en la base de datos central.';
 }
 
-// ============================================================
-// 2. SCRAPER DE SPOTIFY (METADATOS DE PLAYLISTS / CHARTS)
-// ============================================================
+// Spotify Scraper Metadatos
 async function getSpotifyToken() {
     try {
         const res = await axios.get('https://open.spotify.com/get_access_token', {
@@ -161,7 +236,7 @@ async function getSpotifyToken() {
         });
         return res.data?.accessToken || null;
     } catch (e) {
-        console.error('❌ Error obteniendo token público de Spotify:', e.message);
+        console.error('❌ Error obteniendo token de Spotify:', e.message);
         return null;
     }
 }
@@ -197,9 +272,7 @@ async function scrapeSpotifyPlaylist(playlistId) {
     }
 }
 
-// ============================================================
-// 3. SOUNDCLOUD / YOUTUBE SCRAPERS
-// ============================================================
+// SoundCloud & YouTube Scrapers
 async function getSoundCloudClientId() {
     try {
         const pageRes = await axios.get('https://soundcloud.com', {
@@ -291,30 +364,11 @@ async function sendDiscordSummary(addedSongs) {
 
         const mainEmbed = new EmbedBuilder()
             .setTitle('🌙 Escaneo e Ingesta Finalizados')
-            .setDescription(`Se han procesado e insertado exitosamente **${addedSongs.length} nuevas canciones** con letras sincronizadas.`)
+            .setDescription(`Se han procesado e insertado exitosamente **${addedSongs.length} nuevas canciones** en la base de datos.`)
             .setColor(0x7289da)
             .setTimestamp();
 
         await channel.send({ embeds: [mainEmbed] });
-
-        for (const song of addedSongs.slice(0, 5)) {
-            const songEmbed = new EmbedBuilder()
-                .setTitle(song.title)
-                .addFields(
-                    { name: 'Artista', value: song.artist || '?', inline: true },
-                    { name: 'Género', value: song.genre || '?', inline: true },
-                    { name: 'Fuente', value: song.source || '?', inline: true }
-                )
-                .setThumbnail(song.cover_url)
-                .setColor(0x2ecc71);
-
-            await channel.send({ embeds: [songEmbed] });
-            await delay(300);
-        }
-
-        if (addedSongs.length > 5) {
-            await channel.send(`*...y ${addedSongs.length - 5} canciones más registradas.*`);
-        }
     } catch (e) {
         console.error('Error enviando reporte a Discord:', e.message);
     }
@@ -333,13 +387,8 @@ async function runSlowScraper(maxSongsTarget = 1000, customCategory = null) {
 
     try {
         for (const target of targets) {
-            if (scraperCancelRequested) {
-                console.log('🛑 Scraper cancelado por el usuario.');
-                break;
-            }
+            if (scraperCancelRequested) break;
             if (addedSongs.length >= maxSongsTarget) break;
-
-            console.log(`⏳ Buscando: [${target.genre}] -> "${target.query}"`);
 
             const scTracks = await searchSoundCloud(target.query);
             await delay(1200);
@@ -357,7 +406,6 @@ async function runSlowScraper(maxSongsTarget = 1000, customCategory = null) {
 
                 const cleanTitle = cleanTitleString(track.title);
                 const artistName = track.artist || target.genre;
-
                 const lyricsData = await fetchSyncedLyrics(cleanTitle, artistName);
 
                 batchToInsert.push({
@@ -385,7 +433,6 @@ async function runSlowScraper(maxSongsTarget = 1000, customCategory = null) {
 
                 if (!error && data) {
                     addedSongs.push(...data);
-                    console.log(`✅ +${data.length} agregadas de [${target.genre}]. Total sesión: ${addedSongs.length}`);
                 }
             }
 
@@ -393,8 +440,6 @@ async function runSlowScraper(maxSongsTarget = 1000, customCategory = null) {
         }
 
         catalogCache.del('full_catalog');
-        console.log(`🎉 [SCRAPER] Finalizado. Total agregadas: ${addedSongs.length}`);
-
         if (addedSongs.length > 0) {
             await sendDiscordSummary(addedSongs);
         }
@@ -406,69 +451,11 @@ async function runSlowScraper(maxSongsTarget = 1000, customCategory = null) {
     }
 }
 
-async function runSpotifyImport(playlistUrl, limit = 50) {
-    if (isScraperRunning) return 0;
-    isScraperRunning = true;
-    console.log(`🟢 Importando desde Spotify Playlist: ${playlistUrl}`);
-
-    const addedSongs = [];
-
-    try {
-        const tracks = await scrapeSpotifyPlaylist(playlistUrl);
-        console.log(`🎵 Se encontraron ${tracks.length} canciones en Spotify. Buscando audios...`);
-
-        for (const track of tracks.slice(0, limit)) {
-            if (scraperCancelRequested) break;
-
-            const ytResults = await searchYouTube(track.searchQuery);
-            if (ytResults && ytResults.length > 0) {
-                const bestMatch = ytResults[0];
-                const lyrics = await fetchSyncedLyrics(track.title, track.artist);
-
-                const songObj = {
-                    title: track.title,
-                    artist: track.artist,
-                    genre: 'Spotify Import',
-                    duration: bestMatch.duration,
-                    source: 'youtube',
-                    audio_url: bestMatch.audio_url,
-                    cover_url: track.cover_url || bestMatch.cover_url,
-                    lyrics: lyrics
-                };
-
-                const { data, error } = await supabase
-                    .from('songs')
-                    .upsert([songObj], { onConflict: 'audio_url', ignoreDuplicates: true })
-                    .select();
-
-                if (!error && data && data.length > 0) {
-                    addedSongs.push(data[0]);
-                    console.log(`✅ Importada: ${track.artist} - ${track.title}`);
-                }
-            }
-            await delay(1500);
-        }
-
-        catalogCache.del('full_catalog');
-        if (addedSongs.length > 0) await sendDiscordSummary(addedSongs);
-    } catch (e) {
-        console.error('Error importando desde Spotify:', e.message);
-    } finally {
-        isScraperRunning = false;
-        scraperCancelRequested = false;
-    }
-
-    return addedSongs.length;
-}
-
 cron.schedule('0 21,22,23,0,1,2,3,4,5,6 * * *', () => {
-    console.log('⏰ Horario nocturno activado (9 PM - 6 AM). Iniciando ciclo de ingesta...');
     runSlowScraper(500);
 });
 
-// ============================================================
-// 4. BOT DE DISCORD
-// ============================================================
+// Bot de Discord & Comandos de Administración en Tiempo Real
 discordClient.on('messageCreate', async (message) => {
     if (message.author.bot || !message.content.startsWith('!')) return;
 
@@ -476,134 +463,85 @@ discordClient.on('messageCreate', async (message) => {
     const command = args.shift().toLowerCase();
 
     try {
+        if (command === 'announcement' || command === 'anuncio') {
+            const announcementMsg = args.join(' ');
+            if (!announcementMsg) {
+                systemState.announcement = null;
+                systemState.announcementTimestamp = null;
+                return message.reply('📢 Anuncio global limpiado.');
+            }
+
+            systemState.announcement = announcementMsg;
+            systemState.announcementTimestamp = new Date().toISOString();
+            return message.reply(`📢 **Anuncio Global Publicado en el sitio web:**\n> "${announcementMsg}"`);
+        }
+
+        if (command === 'mantenimiento') {
+            const subCommand = args[0] ? args[0].toLowerCase() : '';
+            if (subCommand === 'off' || subCommand === 'desactivar') {
+                systemState.maintenance = false;
+                return message.reply('🟢 **Modo Mantenimiento DESACTIVADO.** El sitio web y la API están operativos.');
+            }
+
+            const maintenanceMsg = args.join(' ');
+            systemState.maintenance = true;
+            if (maintenanceMsg) {
+                systemState.maintenanceMessage = maintenanceMsg;
+            }
+
+            return message.reply(`🛠️ **Modo Mantenimiento ACTIVADO.**\nMensaje mostrado a usuarios: "${systemState.maintenanceMessage}"`);
+        }
+
         if (command === 'status') {
             return message.reply(
-                isScraperRunning
-                    ? `🔄 Scraper **activo** · Streams en uso: ${streamConcurrency.current}/${streamConcurrency.max}`
-                    : `🟢 Scraper en espera · Streams en uso: ${streamConcurrency.current}/${streamConcurrency.max}`
+                `📊 **Estado del Sistema:**\n` +
+                `- Mantenimiento: ${systemState.maintenance ? '🔴 ACTIVADO' : '🟢 DESACTIVADO'}\n` +
+                `- Anuncio Activo: ${systemState.announcement ? `"${systemState.announcement}"` : 'Ninguno'}\n` +
+                `- Scraper: ${isScraperRunning ? '🔄 En ejecución' : '⏸️ En espera'}\n` +
+                `- Streams Concurrente: ${streamConcurrency.current}/${streamConcurrency.max}`
             );
         }
 
         if (command === 'help' || command === 'comandos') {
             const helpEmbed = new EmbedBuilder()
-                .setTitle('🤖 Comandos de Sekai Music Bot')
+                .setTitle('🤖 Control Total de Sekai Music Enterprise')
                 .setColor(0x3498db)
                 .addFields(
-                    { name: '!status', value: 'Estado del scraper y streams' },
-                    { name: '!stats', value: 'Total de canciones en la BD' },
-                    { name: '!add [cant] [género]', value: 'Ej: `!add 50 vocaloid`' },
-                    { name: '!spotify [link_playlist]', value: 'Importa canciones desde una playlist de Spotify' },
-                    { name: '!lyrics [id_cancion]', value: 'Busca y actualiza la letra sincronizada por ID' },
-                    { name: '!search [nombre]', value: 'Busca canciones en el catálogo' },
-                    { name: '!song [id]', value: 'Muestra detalle + link de streaming de la canción' },
-                    { name: '!trigger', value: 'Fuerza el scraper nocturno estándar (300 canciones)' },
-                    { name: '!stop', value: 'Cancela la ejecución del scraper activo' },
-                    { name: '!cache', value: 'Limpia la caché del catálogo en memoria' }
+                    { name: '!anuncio [mensaje]', value: 'Publica un anuncio global inmediato en la web' },
+                    { name: '!mantenimiento [mensaje]', value: 'Bloquea el sitio y activa pantalla de mantenimiento' },
+                    { name: '!mantenimiento off', value: 'Restaura el sitio web y la API' },
+                    { name: '!status', value: 'Estado completo del servidor, scraper y mantenimiento' },
+                    { name: '!stats', value: 'Cantidad de canciones en Supabase' },
+                    { name: '!trigger', value: 'Inicia el scraper de canciones manualmente' },
+                    { name: '!stop', value: 'Detiene el scraper en ejecución' }
                 );
             return message.reply({ embeds: [helpEmbed] });
         }
 
         if (command === 'stats') {
-            const { count, error } = await supabase
-                .from('songs')
-                .select('*', { count: 'exact', head: true });
+            const { count, error } = await supabase.from('songs').select('*', { count: 'exact', head: true });
             if (error) return message.reply('❌ Error al obtener estadísticas.');
             return message.reply(`📊 Total en la base de datos: **${count} canciones**.`);
         }
 
-        if (command === 'spotify') {
-            const playlistUrl = args[0];
-            if (!playlistUrl) return message.reply('❌ Uso: `!spotify https://open.spotify.com/playlist/...`');
-
-            if (isScraperRunning) return message.reply('⚠️ El scraper ya está ocupado.');
-
-            message.reply('🟢 Iniciando extracción de metadatos desde Spotify...');
-            runSpotifyImport(playlistUrl, 50);
-            return;
-        }
-
-        if (command === 'lyrics') {
-            const id = Number(args[0]);
-            if (!id) return message.reply('❌ Indica el ID de la canción. Ej: `!lyrics 102`');
-
-            const { data: song } = await supabase.from('songs').select('*').eq('id', id).maybeSingle();
-            if (!song) return message.reply('❌ Canción no encontrada.');
-
-            const fetchedLyrics = await fetchSyncedLyrics(song.title, song.artist);
-            await supabase.from('songs').update({ lyrics: fetchedLyrics }).eq('id', id);
-
-            return message.reply(`✅ Letra actualizada para **${song.title}**.`);
-        }
-
-        if (command === 'search') {
-            const query = args.join(' ');
-            if (!query) return message.reply('❌ Indica qué buscar. Ej: `!search Eve`');
-
-            const { data } = await supabase
-                .from('songs')
-                .select('id, title, artist, source')
-                .or(`title.ilike.%${query}%,artist.ilike.%${query}%`)
-                .limit(8);
-
-            if (!data || data.length === 0) return message.reply('🔍 No se encontraron coincidencias.');
-
-            const results = data.map((s, i) => `${i + 1}. \`#${s.id}\` **${s.title}** - ${s.artist} *(${s.source})*`).join('\n');
-            return message.reply(`🎵 **Resultados:**\n${results}`);
-        }
-
-        if (command === 'song' || command === 'cancion') {
-            const id = Number(args[0]);
-            if (!Number.isInteger(id) || id <= 0) return message.reply('❌ Uso: `!song 15430`');
-
-            const { data, error } = await supabase.from('songs').select('*').eq('id', id).maybeSingle();
-            if (error || !data) return message.reply('❌ Canción no encontrada.');
-
-            const streamUrl = `${RENDER_URL}/api/v1/stream/${data.id}`;
-            const embed = new EmbedBuilder()
-                .setTitle(data.title || 'Sin título')
-                .setDescription(`**Artista:** ${data.artist || '?'}\n**Género:** ${data.genre || '?'}\n**Fuente:** ${data.source || '?'}\n**Duración:** ${data.duration || '?'}s\n**Stream:** ${streamUrl}`)
-                .setColor(0x9b59b6);
-            if (data.cover_url) embed.setThumbnail(data.cover_url);
-            return message.reply({ embeds: [embed] });
-        }
-
         if (command === 'trigger') {
             if (isScraperRunning) return message.reply('⚠️ El scraper ya se encuentra ejecutándose.');
-            await message.reply('🚀 Forzando inicio del scraper...');
+            message.reply('🚀 Forzando inicio del scraper...');
             runSlowScraper(300);
-            return;
-        }
-
-        if (command === 'add') {
-            const limit = parseInt(args[0], 10) || 50;
-            const category = args.slice(1).join(' ') || null;
-
-            if (isScraperRunning) return message.reply('⚠️ El scraper ya está ejecutando un proceso.');
-
-            await message.reply(`🚀 Iniciando ingesta manual de hasta **${limit} canciones** ${category ? `para "${category}"` : ''}.`);
-            runSlowScraper(limit, category);
             return;
         }
 
         if (command === 'stop') {
             if (!isScraperRunning) return message.reply('🟢 No hay scraper activo.');
             scraperCancelRequested = true;
-            return message.reply('🛑 Cancelación solicitada. Se detendrá al terminar el lote actual.');
-        }
-
-        if (command === 'cache') {
-            catalogCache.del('full_catalog');
-            return message.reply('🧹 Caché del catálogo limpiada.');
+            return message.reply('🛑 Cancelación solicitada.');
         }
     } catch (err) {
-        console.error('Discord Error:', err.message);
-        return message.reply(`❌ ${err.message}`);
+        console.error('Discord Command Error:', err.message);
     }
 });
 
-// ============================================================
-// 5. AUDIO: OBTENER STREAM Y TRANSCODIFICAR A OGG
-// ============================================================
+// Motor de Audio Streaming
 async function getAudioStream(audioUrl) {
     if (!audioUrl || typeof audioUrl !== 'string') throw new Error('audio_url inválido');
     const url = audioUrl.trim();
@@ -622,7 +560,6 @@ async function getAudioStream(audioUrl) {
         throw new Error(`Fuente no soportada: ${url}`);
     }
 
-    console.log(`🎧 Obteniendo audio: ${url}`);
     const result = await play.stream(url, { quality: 2, discordPlayerCompatibility: false });
     if (!result || !result.stream) throw new Error('No se pudo obtener el stream de audio.');
     return result.stream;
@@ -644,9 +581,83 @@ function convertStreamToOgg(inputStream) {
     return outputStream;
 }
 
-// ============================================================
-// 6. ENDPOINTS API REST (EXPRESS)
-// ============================================================
+// REST ENDPOINTS
+
+// Endpoint de Estado del Sistema y Mantenimiento/Anuncios
+app.get('/api/system/status', (req, res) => {
+    res.json({
+        status: 'ok',
+        maintenance: systemState.maintenance,
+        maintenanceMessage: systemState.maintenanceMessage,
+        announcement: systemState.announcement,
+        announcementTimestamp: systemState.announcementTimestamp,
+        serverTime: new Date().toISOString()
+    });
+});
+
+// Registro Auténtico de Usuarios y Generación de API Keys Únicas
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ status: 'error', message: 'Email y contraseña requeridos.' });
+        }
+
+        const { data: existingUser } = await supabase
+            .from('users')
+            .select('email')
+            .eq('email', email)
+            .maybeSingle();
+
+        if (existingUser) {
+            return res.status(400).json({ status: 'error', message: 'El correo electrónico ya está registrado.' });
+        }
+
+        const newApiKey = generateUniqueApiKey();
+        const { data, error } = await supabase
+            .from('users')
+            .insert([{ email, password_hash: password, api_key: newApiKey }])
+            .select()
+            .single();
+
+        if (error) {
+            return res.status(500).json({ status: 'error', message: error.message });
+        }
+
+        res.json({
+            status: 'success',
+            user: { email: data.email, apiKey: data.api_key }
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
+// Login Auténtico
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email)
+            .eq('password_hash', password)
+            .maybeSingle();
+
+        if (error || !user) {
+            return res.status(401).json({ status: 'error', message: 'Credenciales inválidas.' });
+        }
+
+        res.json({
+            status: 'success',
+            user: { email: user.email, apiKey: user.api_key }
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
+// Health Metric
 app.get('/api/health', async (req, res) => {
     let dbOk = false;
     let songCount = 0;
@@ -659,6 +670,8 @@ app.get('/api/health', async (req, res) => {
     res.status(200).json({
         status: 'ok',
         server: RENDER_URL,
+        maintenance: systemState.maintenance,
+        announcement: systemState.announcement,
         scraper_running: isScraperRunning,
         streams: streamConcurrency.current,
         max_streams: streamConcurrency.max,
@@ -670,47 +683,109 @@ app.get('/api/health', async (req, res) => {
     });
 });
 
+// ==========================================
+// API VERSION 1 (v1) - Catálogo Clásico
+// ==========================================
 app.get('/api/v1/catalog', async (req, res) => {
     try {
-        const cached = catalogCache.get('full_catalog');
-        if (cached) return res.json(cached);
-
-        const { count, error: countError } = await supabase.from('songs').select('*', { count: 'exact', head: true });
-        if (countError) return res.status(500).json({ status: 'error', message: countError.message });
-
-        let allSongs = [];
-        let page = 0;
-        const pageSize = 1000;
-        let hasMore = true;
-
-        while (hasMore) {
-            const { data, error } = await supabase
-                .from('songs')
-                .select('*')
-                .range(page * pageSize, (page + 1) * pageSize - 1)
-                .order('id', { ascending: false });
-
-            if (error) return res.status(500).json({ status: 'error', message: error.message });
-
-            allSongs = allSongs.concat(data || []);
-            if (!data || data.length < pageSize) hasMore = false;
-            else page++;
-        }
-
-        const payload = {
-            status: 'success',
-            server: RENDER_URL,
-            total: count,
-            fetched: allSongs.length,
-            catalog: allSongs.map(enrichSong),
-        };
-        catalogCache.set('full_catalog', payload);
-        res.json(payload);
+        const { data, error } = await supabase.from('songs').select('*').order('id', { ascending: false }).limit(200);
+        if (error) return res.status(500).json({ status: 'error', message: error.message });
+        res.json({ status: 'success', version: 'v1', total: data.length, catalog: data.map(enrichSongV1) });
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message });
     }
 });
 
+app.get('/api/v1/stream/:id', async (req, res) => {
+    handleStreamRequest(req, res);
+});
+
+// ==========================================
+// API VERSION 2 (v2) - Metadatos HD & LRC
+// ==========================================
+app.get('/api/v2/catalog', async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('songs').select('*').order('id', { ascending: false }).limit(500);
+        if (error) return res.status(500).json({ status: 'error', message: error.message });
+        res.json({ status: 'success', version: 'v2', total: data.length, catalog: data.map(enrichSongV2) });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
+app.get('/api/v2/stream/:id', async (req, res) => {
+    handleStreamRequest(req, res);
+});
+
+// ==========================================
+// API VERSION 3 (v3) - Optimized Stream Pipeline
+// ==========================================
+app.get('/api/v3/catalog', async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('songs').select('*').order('id', { ascending: false }).limit(1000);
+        if (error) return res.status(500).json({ status: 'error', message: error.message });
+        res.json({ status: 'success', version: 'v3', total: data.length, catalog: data.map(enrichSongV3) });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
+app.get('/api/v3/stream/:id', async (req, res) => {
+    handleStreamRequest(req, res);
+});
+
+// ==========================================
+// API VERSION 4 (v4) - Analytics & Trends
+// ==========================================
+app.get('/api/v4/trends', async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('songs').select('genre, id').limit(1000);
+        if (error) return res.status(500).json({ status: 'error', message: error.message });
+
+        const genreCounts = {};
+        data.forEach(item => {
+            const g = item.genre || 'Desconocido';
+            genreCounts[g] = (genreCounts[g] || 0) + 1;
+        });
+
+        res.json({
+            status: 'success',
+            version: 'v4',
+            total_analyzed: data.length,
+            genres_distribution: genreCounts,
+            active_streams: streamConcurrency.current,
+            system_load: `${Math.round((streamConcurrency.current / streamConcurrency.max) * 100)}%`
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
+// ==========================================
+// API VERSION 5 (v5) - Batch High-Performance Payload
+// ==========================================
+app.post('/api/v5/batch-query', requireApiKey, async (req, res) => {
+    try {
+        const { ids } = req.body;
+        if (!Array.isArray(ids)) {
+            return res.status(400).json({ status: 'error', message: 'Se requiere un arreglo "ids"' });
+        }
+
+        const { data, error } = await supabase.from('songs').select('*').in('id', ids.slice(0, 100));
+        if (error) return res.status(500).json({ status: 'error', message: error.message });
+
+        res.json({
+            status: 'success',
+            version: 'v5',
+            count: data.length,
+            results: data.map(enrichSongV2)
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
+// Buscador Global
 app.get('/api/v1/search', async (req, res) => {
     try {
         const { q } = req.query;
@@ -727,37 +802,25 @@ app.get('/api/v1/search', async (req, res) => {
         res.json({
             status: 'success',
             total: data.length,
-            results: data.map(enrichSong),
+            results: data.map(enrichSongV1),
         });
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message });
     }
 });
 
-app.get('/api/v1/song/:id', async (req, res) => {
-    try {
-        const id = Number(req.params.id);
-        const { data, error } = await supabase.from('songs').select('*').eq('id', id).maybeSingle();
-        if (error) throw error;
-        if (!data) return res.status(404).json({ status: 'error', message: 'No encontrada' });
-
-        res.json({ status: 'success', song: enrichSong(data) });
-    } catch (err) {
-        res.status(500).json({ status: 'error', message: err.message });
-    }
-});
-
-app.get('/api/v1/stream/:id', async (req, res) => {
+// Función Manejadora Unificada de Audio Streaming
+async function handleStreamRequest(req, res) {
     try {
         if (streamConcurrency.current >= streamConcurrency.max) {
-            return res.status(429).json({ status: 'error', message: 'Demasiados streams a la vez. Reintenta en unos segundos.' });
+            return res.status(429).json({ status: 'error', message: 'Límite de streams alcanzado. Reintente en unos segundos.' });
         }
         streamConcurrency.current += 1;
 
         const id = Number(req.params.id);
         if (!Number.isInteger(id) || id <= 0) {
             streamConcurrency.current = Math.max(0, streamConcurrency.current - 1);
-            return res.status(400).json({ status: 'error', message: 'ID inválido' });
+            return res.status(400).json({ status: 'error', message: 'ID de canción inválido' });
         }
 
         const { data: song, error } = await supabase
@@ -774,7 +837,7 @@ app.get('/api/v1/stream/:id', async (req, res) => {
             });
         }
 
-        console.log(`🎧 Stream #${id}: ${song.title}`);
+        console.log(`🎧 Streaming Track #${id}: ${song.title}`);
         const sourceStream = await getAudioStream(song.audio_url);
 
         res.status(200);
@@ -792,7 +855,7 @@ app.get('/api/v1/stream/:id', async (req, res) => {
         };
 
         oggStream.on('error', (err) => {
-            console.error('Stream error:', err.message);
+            console.error('Stream Error:', err.message);
             cleanup();
             if (!res.headersSent) res.status(500).end();
             else if (!res.destroyed) res.destroy(err);
@@ -803,14 +866,14 @@ app.get('/api/v1/stream/:id', async (req, res) => {
         oggStream.pipe(res);
     } catch (err) {
         streamConcurrency.current = Math.max(0, streamConcurrency.current - 1);
-        console.error('/stream:', err.message);
         if (!res.headersSent) {
             res.status(500).json({ status: 'error', message: err.message });
         }
     }
-});
+}
 
-app.post('/api/upload', requireAuth, async (req, res) => {
+// Inserción Manual
+app.post('/api/upload', requireApiKey, async (req, res) => {
     try {
         const { title, artist, duration, audio_url, cover_url, lyrics, genre } = req.body;
         const songData = {
@@ -827,28 +890,24 @@ app.post('/api/upload', requireAuth, async (req, res) => {
         if (error) return res.status(500).json({ error: error.message });
 
         catalogCache.del('full_catalog');
-        res.json({ success: true, song: enrichSong(data[0]) });
+        res.json({ success: true, song: enrichSongV1(data[0]) });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// ============================================================
-// INICIALIZACIÓN DE SERVIDOR Y DISCORD
-// ============================================================
+// Inicialización de Servidores
 app.listen(PORT, async () => {
-    console.log(`🚀 Servidor activo en puerto ${PORT}`);
-    console.log(`📡 Stream: ${RENDER_URL}/api/v1/stream/:id`);
-
-    // Inicializar tokens y cookies de play-dl
+    console.log(`🚀 Servidor Enterprise activo en el puerto ${PORT}`);
     await initPlayDl();
 
     if (process.env.DISCORD_BOT_TOKEN) {
         try {
             await discordClient.login(process.env.DISCORD_BOT_TOKEN);
-            console.log('🤖 Bot de Discord conectado exitosamente');
+            console.log('🤖 Bot de Discord de Administración Conectado Exitosamente');
         } catch (error) {
-            console.error('❌ Error al conectar el bot de Discord:', error.message);
+            console.error('❌ Error al conectar Bot de Discord:', error.message);
         }
     }
 });
+
