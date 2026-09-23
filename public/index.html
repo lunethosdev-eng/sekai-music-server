@@ -1,316 +1,958 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sekai Music Catalog</title>
+    <title>Sekai Enterprise API & Music Infrastructure</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        heading: ['Syne', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            500: '#64748b',
+                            900: '#090a0f',
+                            950: '#030305',
+                        }
+                    },
+                    animation: {
+                        'liquid-shine': 'shine 8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-glow': 'pulseGlow 3s infinite',
+                    },
+                    keyframes: {
+                        shine: {
+                            '0%, 100%': { opacity: 0.4, transform: 'scale(1)' },
+                            '50%': { opacity: 0.8, transform: 'scale(1.05)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { boxShadow: '0 0 20px rgba(255, 255, 255, 0.05)' },
+                            '50%': { boxShadow: '0 0 40px rgba(255, 255, 255, 0.15)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        
+        /* Custom Liquid Glass Aesthetics */
         body {
-            background-color: #090a0f;
-            color: #e2e8f0;
+            background-color: #030305;
+            color: #f1f5f9;
             font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
         }
 
-        .music-card {
-            background-color: #12141d;
-            border: 1px solid #1e2230;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        .glass-panel {
+            background: rgba(18, 20, 29, 0.55);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
         }
 
-        .music-card:hover {
-            background-color: #1a1d2b;
-            border-color: #2e3448;
-            transform: translateY(-2px);
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.18);
+            transform: translateY(-3px) scale(1.005);
+            box-shadow: 0 20px 40px -15px rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-button {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            transition: all 0.25s ease;
+        }
+
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.95);
+            color: #000000;
+            border-color: #ffffff;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.25);
+        }
+
+        .glass-input {
+            background: rgba(10, 11, 16, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: #ffffff;
+            transition: all 0.25s ease;
+        }
+
+        .glass-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .ambient-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, rgba(0, 0, 0, 0) 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #090a0f; }
-        ::-webkit-scrollbar-thumb { background: #1e2230; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #333b52; }
+        ::-webkit-scrollbar-track { background: #030305; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+        .view-section { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
+        .view-section.active { display: block; opacity: 1; }
+
+        .gradient-text-mono {
+            background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between pb-28">
+<body class="relative min-h-screen flex flex-col justify-between selection:bg-white selection:text-black">
 
-    <!-- HEADER -->
-    <header class="sticky top-0 z-40 bg-[#090a0f]/90 backdrop-blur-xl border-b border-[#1a1d2b]">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-emerald-400 flex items-center justify-center text-black font-black text-xs tracking-tighter shadow-lg shadow-indigo-500/10">
+    <!-- Elemento Audio para Reproducción de Stream OGG Real -->
+    <audio id="main-audio-player" class="hidden"></audio>
+
+    <div class="ambient-glow top-[-200px] left-1/2 -translate-x-1/2 animate-liquid-shine"></div>
+    <div class="ambient-glow bottom-[-200px] right-[-100px] opacity-40"></div>
+
+    <!-- MAIN NAVBAR -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            
+            <a href="#" onclick="showView('landing')" class="flex items-center space-x-3 group">
+                <div class="w-10 h-10 rounded-2xl bg-white text-black font-heading font-black text-sm flex items-center justify-center tracking-tighter shadow-xl shadow-white/10 group-hover:scale-105 transition">
                     SK
                 </div>
-                <h1 class="text-sm font-bold text-white tracking-tight" ondblclick="toggleAdmin()">
-                    SEKAI <span class="text-xs font-medium text-zinc-500 ml-1">CATALOG</span>
-                </h1>
+                <div>
+                    <span class="font-heading font-extrabold text-lg tracking-wider text-white flex items-center gap-2">
+                        SEKAI <span class="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">v2.4 PRO</span>
+                    </span>
+                    <p class="text-[10px] text-zinc-400 font-mono tracking-wider uppercase">Enterprise Audio API</p>
+                </div>
+            </a>
+
+            <nav class="hidden md:flex items-center space-x-1 bg-white/5 border border-white/10 p-1.5 rounded-full text-xs font-medium backdrop-blur-md">
+                <button onclick="showView('landing')" id="nav-landing" class="px-5 py-2 rounded-full text-white bg-white/10 transition">Overview</button>
+                <button onclick="showView('catalog')" id="nav-catalog" class="px-5 py-2 rounded-full text-zinc-400 hover:text-white transition">Catálogo Audio</button>
+                <button onclick="showView('docs')" id="nav-docs" class="px-5 py-2 rounded-full text-zinc-400 hover:text-white transition">API Single-Endpoint</button>
+                <button onclick="showView('dashboard')" id="nav-dashboard" class="px-5 py-2 rounded-full text-zinc-400 hover:text-white transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-line text-[10px]"></i> Dashboard
+                </button>
+            </nav>
+
+            <div class="flex items-center space-x-3" id="auth-buttons-container">
+                <button onclick="openAuthModal('login')" class="text-xs font-semibold text-zinc-300 hover:text-white px-4 py-2.5 transition">
+                    Iniciar Sesión
+                </button>
+                <button onclick="openAuthModal('register')" class="glass-button text-xs font-bold px-5 py-2.5 rounded-full flex items-center space-x-2">
+                    <span>Obtener API Key</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </button>
             </div>
 
-            <div class="flex items-center space-x-3">
-                <div class="bg-[#12141d] border border-[#1e2230] rounded-full px-3.5 py-1 flex items-center space-x-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span class="text-xs font-medium text-zinc-300"><span id="song-count" class="font-bold text-white">0</span> canciones</span>
-                </div>
-                
-                <button onclick="switchTab('catalog')" id="btn-catalog" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white text-black transition">
-                    Catálogo
+            <div class="hidden items-center space-x-3" id="user-profile-container">
+                <button onclick="showView('dashboard')" class="flex items-center space-x-2.5 bg-white/5 border border-white/10 hover:border-white/30 px-3.5 py-1.5 rounded-full transition">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="user-display-email" class="text-xs font-mono font-medium text-zinc-200">dev@enterprise.com</span>
                 </button>
-                <button onclick="switchTab('docs')" id="btn-docs" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-zinc-400 hover:text-white transition">
-                    API Single-Endpoint
+                <button onclick="logoutUser()" title="Cerrar Sesión" class="w-9 h-9 rounded-full bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-white/10 flex items-center justify-center transition">
+                    <i class="fa-solid fa-power-off text-xs"></i>
                 </button>
             </div>
+
         </div>
     </header>
 
-    <!-- CONTENIDO -->
-    <main class="max-w-7xl mx-auto px-6 py-6 w-full flex-grow">
-
-        <!-- TAB: CATÁLOGO -->
-        <section id="catalog" class="tab-content active space-y-6">
-            
-            <div class="relative w-full">
-                <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-zinc-500 text-xs"></i>
-                <input type="text" id="search-input" oninput="filterSongs()" placeholder="Buscar por canción, artista, género (Eve, Trío Los Panchos, Post-Punk...)..." class="w-full pl-11 pr-4 py-2.5 rounded-xl bg-[#12141d] border border-[#1e2230] text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 transition">
+    <!-- VIEW 1: LANDING PAGE -->
+    <section id="view-landing" class="view-section active max-w-7xl mx-auto px-6 py-12 flex-grow w-full relative">
+        <div class="text-center space-y-8 max-w-4xl mx-auto pt-8">
+            <div class="inline-flex items-center space-x-2 bg-white/5 border border-white/15 px-4 py-1.5 rounded-full text-xs font-mono text-zinc-300 animate-float">
+                <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                <span>Infraestructura Sonora para Apps Android & Web</span>
             </div>
 
-            <!-- CHIPS -->
-            <div class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none" id="genre-filters">
-                <button onclick="setGenreFilter('')" class="genre-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-black whitespace-nowrap">
-                    Todos
+            <h1 class="font-heading font-extrabold text-5xl md:text-7xl lg:text-8xl tracking-tight text-white leading-none">
+                Infraestructura Audio <br>
+                <span class="gradient-text-mono italic">Ultra-Rápida.</span>
+            </h1>
+
+            <p class="text-zinc-400 text-base md:text-lg font-normal max-w-2xl mx-auto leading-relaxed">
+                Una sola llamada API autorizada entrega catálogo dinámico, metadatos sincronizados, letras LRC y streaming optimizado en OGG para Android Nativo, WebView y PWA.
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <button onclick="openAuthModal('register')" class="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-black font-extrabold text-sm hover:bg-zinc-200 transition shadow-2xl shadow-white/20 flex items-center justify-center space-x-3">
+                    <span>Crear Cuenta & Obtener API Key</span>
+                    <i class="fa-solid fa-key"></i>
+                </button>
+                <button onclick="openAuthModal('login')" class="w-full sm:w-auto px-8 py-4 rounded-full glass-button font-bold text-sm text-white flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Acceder al Panel</span>
                 </button>
             </div>
+        </div>
 
-            <!-- GRID -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="catalog-grid">
+        <div class="mt-16 glass-panel rounded-3xl p-6 md:p-8 border border-white/10 max-w-5xl mx-auto shadow-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between pb-4 border-b border-white/10 text-xs font-mono text-zinc-400">
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 rounded-full bg-red-500/40 border border-red-500/50"></span>
+                    <span class="w-3 h-3 rounded-full bg-yellow-500/40 border border-yellow-500/50"></span>
+                    <span class="w-3 h-3 rounded-full bg-green-500/40 border border-green-500/50"></span>
+                    <span class="ml-2 font-bold text-white">GET /api/v1/catalog</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">200 OK</span>
+                    <span>14ms latency</span>
+                </div>
             </div>
-        </section>
 
-        <!-- TAB: API DOCUMENTATION -->
-        <section id="docs" class="tab-content space-y-6">
-            <div class="music-card p-6 rounded-2xl space-y-4">
-                <div class="flex items-center justify-between border-b border-[#1e2230] pb-4">
-                    <div>
-                        <h2 class="text-sm font-bold text-white">Endpoint Único de Catálogo Completo</h2>
-                        <p class="text-xs text-zinc-400 mt-1">Obtén todo el catálogo con 1 sola llamada API (incluye letras, audios SoundCloud/YouTube y arte HD).</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-xs font-mono text-zinc-400">
+                        <span>Petición cURL / Android HTTP</span>
+                        <button onclick="copySnippet('curl-sample')" class="hover:text-white"><i class="fa-regular fa-copy"></i> Copiar</button>
                     </div>
-                    <span class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-bold rounded-lg">GET</span>
+                    <pre id="curl-sample" class="bg-black/60 p-4 rounded-2xl border border-white/10 text-xs font-mono text-zinc-300 overflow-x-auto leading-relaxed">
+curl -X GET "/api/v1/catalog" \
+  -H "x-api-key: sekai_secret_key_123" \
+  -H "X-Client-App: com.sekai.musicplayer"</pre>
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-xs text-zinc-400 font-medium">URL del Endpoint:</label>
-                    <div class="flex items-center space-x-2 bg-[#090a0f] p-3 rounded-xl border border-[#1e2230]">
-                        <code class="text-xs text-indigo-300 font-mono flex-grow">https://sekai-music-server.onrender.com/api/v1/catalog</code>
-                        <button onclick="navigator.clipboard.writeText('https://sekai-music-server.onrender.com/api/v1/catalog')" class="text-xs bg-[#1a1d2b] hover:bg-[#252a3e] px-3 py-1.5 rounded-lg text-zinc-300 transition">Copiar</button>
+                    <div class="flex items-center justify-between text-xs font-mono text-zinc-400">
+                        <span>Respuesta JSON Estructurada</span>
+                        <span class="text-zinc-500">Live Sync</span>
+                    </div>
+                    <pre class="bg-black/60 p-4 rounded-2xl border border-white/10 text-xs font-mono text-emerald-400 overflow-x-auto leading-relaxed max-h-44">
+{
+  "status": "success",
+  "total": 512,
+  "catalog": [
+    {
+      "id": 104,
+      "title": "Kaikai Kitan",
+      "artist": "Eve",
+      "genre": "Eve",
+      "stream_url": "/api/v1/stream/104",
+      "lyrics": "[00:01.00] Namu amida..."
+    }
+  ]
+}</pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIEW 2: ENTERPRISE DASHBOARD -->
+    <section id="view-dashboard" class="view-section max-w-7xl mx-auto px-6 py-8 flex-grow w-full">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-8 border-b border-white/10">
+            <div>
+                <h1 class="font-heading font-extrabold text-3xl text-white">Dashboard de Control & Analíticas API</h1>
+                <p class="text-xs font-mono text-zinc-400 mt-1">Monitoreo en tiempo real de peticiones, WebView Android y rendimiento.</p>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <div class="glass-card px-4 py-2 rounded-2xl flex items-center space-x-3 text-xs font-mono">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-zinc-300">Estado API: <strong class="text-white" id="db-health-status">Operacional</strong></span>
+                </div>
+                <button onclick="refreshDashboardMetrics()" class="glass-button p-2.5 rounded-xl text-xs text-zinc-300 hover:text-white">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="my-8 glass-panel p-6 rounded-3xl border border-white/10 relative overflow-hidden">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div class="space-y-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-mono uppercase tracking-wider text-zinc-400 font-bold">Clave API Exclusiva</span>
+                        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono px-2 py-0.5 rounded-full">Activa</span>
+                    </div>
+                    <div class="flex items-center space-x-3 bg-black/80 p-3 rounded-2xl border border-white/10 max-w-2xl">
+                        <i class="fa-solid fa-key text-zinc-500 text-xs"></i>
+                        <input type="password" id="user-api-key-input" readonly value="sekai_secret_key_123" class="bg-transparent font-mono text-xs text-zinc-200 focus:outline-none flex-grow">
+                        <button onclick="toggleKeyVisibility()" class="text-xs text-zinc-400 hover:text-white px-2"><i class="fa-regular fa-eye" id="eye-icon"></i></button>
+                        <button onclick="copyUserApiKey()" class="bg-white/10 hover:bg-white text-white hover:text-black px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition">Copiar</button>
                     </div>
                 </div>
 
-                <!-- EJEMPLOS DE CÓDIGO -->
-                <div class="space-y-3 pt-4">
-                    <h3 class="text-xs font-bold text-white uppercase tracking-wider">Ejemplos de Integración (1 sola línea / petición)</h3>
-                    
-                    <!-- JS -->
-                    <div class="bg-[#090a0f] p-4 rounded-xl border border-[#1e2230] space-y-2">
-                        <span class="text-[10px] font-bold text-amber-400 font-mono">JavaScript (Fetch)</span>
-                        <pre class="text-xs font-mono text-zinc-300 overflow-x-auto">
-const res = await fetch('https://sekai-music-server.onrender.com/api/v1/catalog');
-const { total, catalog } = await res.json();
-console.log(`Cargadas ${total} canciones:`, catalog);</pre>
-                    </div>
-
-                    <!-- Python -->
-                    <div class="bg-[#090a0f] p-4 rounded-xl border border-[#1e2230] space-y-2">
-                        <span class="text-[10px] font-bold text-sky-400 font-mono">Python (Requests)</span>
-                        <pre class="text-xs font-mono text-zinc-300 overflow-x-auto">
-import requests
-data = requests.get('https://sekai-music-server.onrender.com/api/v1/catalog').json()
-print(f"Total canciones: {data['total']}")</pre>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button onclick="regenerateUserApiKey()" class="glass-button px-4 py-2.5 rounded-xl text-xs font-mono text-red-400 hover:text-red-300 flex items-center space-x-2">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Regenerar Clave</span>
+                    </button>
+                    <div class="text-right font-mono text-xs text-zinc-400">
+                        <p>Límite Streams: <strong class="text-white" id="stream-limit-display">4 Simultáneos</strong></p>
+                        <p>Plan Actual: <strong class="text-emerald-400">Enterprise Unlimited</strong></p>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <!-- SUBIDA MANUAL -->
-        <section id="admin" class="tab-content hidden space-y-4">
-            <div class="music-card p-6 rounded-2xl space-y-4 border-amber-500/20">
-                <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Añadir Canción Manualmente</h3>
-                <form id="upload-form" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input type="text" id="title" required placeholder="Título" class="bg-[#090a0f] border border-[#1e2230] p-2.5 rounded-lg text-xs text-white">
-                        <input type="text" id="artist" required placeholder="Artista" class="bg-[#090a0f] border border-[#1e2230] p-2.5 rounded-lg text-xs text-white">
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <input type="text" id="genre" placeholder="Género" class="bg-[#090a0f] border border-[#1e2230] p-2.5 rounded-lg text-xs text-white">
-                        <input type="number" id="duration" value="180" placeholder="Duración (seg)" class="bg-[#090a0f] border border-[#1e2230] p-2.5 rounded-lg text-xs text-white">
-                        <input type="url" id="audio_url" placeholder="URL Audio/SoundCloud" class="bg-[#090a0f] border border-[#1e2230] p-2.5 rounded-lg text-xs text-white">
-                    </div>
-                    <input type="url" id="cover_url" placeholder="URL Carátula" class="w-full bg-[#090a0f] border border-[#1e2230] p-2.5 rounded-lg text-xs text-white">
-                    <textarea id="lyrics" placeholder="Letra..." class="w-full bg-[#090a0f] border border-[#1e2230] p-2.5 rounded-lg text-xs text-white h-20"></textarea>
-                    <button type="submit" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 font-semibold text-black text-xs rounded-lg transition">Guardar</button>
-                </form>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="glass-card p-5 rounded-3xl space-y-2">
+                <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
+                    <span>Total Canciones BD</span>
+                    <i class="fa-solid fa-database text-zinc-500"></i>
+                </div>
+                <div class="text-3xl font-heading font-extrabold text-white" id="stat-total-songs">0</div>
+                <div class="text-[11px] font-mono text-emerald-400">Ingesta automatizada</div>
             </div>
-        </section>
 
-    </main>
+            <div class="glass-card p-5 rounded-3xl space-y-2">
+                <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
+                    <span>Uso este Mes</span>
+                    <i class="fa-solid fa-chart-simple text-zinc-500"></i>
+                </div>
+                <div class="text-3xl font-heading font-extrabold text-white">1,284,910</div>
+                <div class="text-[11px] font-mono text-emerald-400">+18.4% vs mes anterior</div>
+            </div>
 
-    <!-- PLAYER BAR -->
-    <div id="player-bar" class="fixed bottom-0 left-0 right-0 z-50 bg-[#0c0e17]/95 backdrop-blur-xl border-t border-[#1e2230] px-6 py-3.5 transition-all transform translate-y-full">
+            <div class="glass-card p-5 rounded-3xl space-y-2">
+                <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
+                    <span>Streams Activos</span>
+                    <i class="fa-solid fa-tower-cell text-emerald-400"></i>
+                </div>
+                <div class="text-3xl font-heading font-extrabold text-white" id="stat-active-streams">0 / 4</div>
+                <div class="text-[11px] font-mono text-zinc-400">Transcodificación FFmpeg OGG</div>
+            </div>
+
+            <div class="glass-card p-5 rounded-3xl space-y-2">
+                <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
+                    <span>Servidor Uptime</span>
+                    <i class="fa-solid fa-bolt text-yellow-400"></i>
+                </div>
+                <div class="text-3xl font-heading font-extrabold text-white" id="stat-uptime">0s</div>
+                <div class="text-[11px] font-mono text-emerald-400">Servidores Render API</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="lg:col-span-2 glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-heading font-bold text-lg text-white">Volumen de Peticiones API</h3>
+                        <p class="text-xs font-mono text-zinc-400">Histórico de tráfico global</p>
+                    </div>
+                </div>
+                <div class="h-64 w-full">
+                    <canvas id="requestsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
+                <div>
+                    <h3 class="font-heading font-bold text-lg text-white">Distribución de Clientes</h3>
+                    <p class="text-xs font-mono text-zinc-400">Orígenes detectados</p>
+                </div>
+                <div class="h-64 w-full flex items-center justify-center">
+                    <canvas id="clientsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIEW 3: MUSIC CATALOG & PLAYER -->
+    <section id="view-catalog" class="view-section max-w-7xl mx-auto px-6 py-8 flex-grow w-full space-y-6">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="relative w-full md:w-1/2">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-zinc-500 text-xs"></i>
+                <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Buscar por canción, artista o género..." class="w-full glass-input pl-11 pr-4 py-3 rounded-2xl text-xs font-mono placeholder-zinc-500">
+            </div>
+
+            <div class="flex items-center space-x-3 w-full md:w-auto overflow-x-auto pb-1" id="genre-filters">
+                <button onclick="setGenreFilter('')" class="genre-btn px-4 py-2 rounded-xl text-xs font-semibold bg-white text-black whitespace-nowrap shadow-lg">
+                    Todos
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="catalog-grid">
+            <!-- Renderizado dinámico desde backend -->
+        </div>
+
+        <div class="pt-6 border-t border-white/10">
+            <button onclick="toggleAdminPanel()" class="glass-button px-5 py-2.5 rounded-2xl text-xs font-mono text-zinc-300 hover:text-white flex items-center space-x-2">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>Añadir Canción Manual al Servidor</span>
+            </button>
+        </div>
+
+        <div id="admin-panel" class="hidden glass-panel p-6 rounded-3xl border border-amber-500/30 space-y-4">
+            <h3 class="text-xs font-bold text-amber-400 font-mono uppercase tracking-wider">Inyectar Canción en Base de Datos Supabase</h3>
+            <form id="upload-form" onsubmit="addCustomSong(event)" class="space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input type="text" id="song-title" required placeholder="Título de la pista" class="glass-input p-3 rounded-xl text-xs">
+                    <input type="text" id="song-artist" required placeholder="Artista" class="glass-input p-3 rounded-xl text-xs">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input type="text" id="song-genre" placeholder="Género" class="glass-input p-3 rounded-xl text-xs">
+                    <input type="number" id="song-duration" value="180" placeholder="Duración (seg)" class="glass-input p-3 rounded-xl text-xs">
+                    <input type="url" id="song-audio-url" required placeholder="URL Audio SoundCloud / YouTube" class="glass-input p-3 rounded-xl text-xs">
+                </div>
+                <input type="url" id="song-cover-url" placeholder="URL Carátula HD" class="w-full glass-input p-3 rounded-xl text-xs">
+                <textarea id="song-lyrics" placeholder="Letra (Sincronizada LRC o texto)..." class="w-full glass-input p-3 rounded-xl text-xs h-20"></textarea>
+                <button type="submit" class="w-full py-3 bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs rounded-xl transition shadow-lg">
+                    Guardar e Inyectar en Servidor API
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- VIEW 4: API DOCUMENTATION & SANDBOX -->
+    <section id="view-docs" class="view-section max-w-7xl mx-auto px-6 py-8 flex-grow w-full space-y-6">
+        <div class="glass-panel p-8 rounded-3xl border border-white/10 space-y-6">
+            <div class="flex items-center justify-between border-b border-white/10 pb-6">
+                <div>
+                    <h2 class="font-heading font-extrabold text-2xl text-white">API Single-Endpoint Universal</h2>
+                    <p class="text-xs font-mono text-zinc-400 mt-1">Catálogo dinámico, metadatos y streaming directo en OGG.</p>
+                </div>
+                <span class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-xs font-bold rounded-xl">GET /api/v1/catalog</span>
+            </div>
+
+            <div class="space-y-3">
+                <label class="text-xs font-mono text-zinc-300 font-bold">Probar Endpoint en Tiempo Real:</label>
+                <div class="flex flex-col sm:flex-row items-center gap-2">
+                    <div class="flex items-center bg-black/80 px-4 py-3 rounded-2xl border border-white/10 flex-grow w-full">
+                        <span class="text-xs font-mono text-emerald-400 font-bold mr-2">GET</span>
+                        <code class="text-xs font-mono text-zinc-300 truncate" id="endpoint-url-display">/api/v1/catalog</code>
+                    </div>
+                    <button onclick="executeSandboxFetch()" class="w-full sm:w-auto px-6 py-3 bg-white text-black hover:bg-zinc-200 font-bold text-xs rounded-2xl font-mono transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-play"></i>
+                        <span>Ejecutar Petición</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="space-y-4 pt-4">
+                <h3 class="text-xs font-mono text-zinc-400 uppercase tracking-wider font-bold">Ejemplos de Integración Directa</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-black/80 p-4 rounded-2xl border border-white/10 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-amber-400 font-mono">JavaScript / Web App</span>
+                            <button onclick="copySnippet('js-code')" class="text-xs text-zinc-400 hover:text-white"><i class="fa-regular fa-copy"></i></button>
+                        </div>
+                        <pre id="js-code" class="text-xs font-mono text-zinc-300 overflow-x-auto leading-relaxed">
+const res = await fetch('/api/v1/catalog');
+const { catalog } = await res.json();
+console.log(catalog);</pre>
+                    </div>
+
+                    <div class="bg-black/80 p-4 rounded-2xl border border-white/10 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-emerald-400 font-mono">Android Kotlin / ExoPlayer Stream</span>
+                            <button onclick="copySnippet('kt-code')" class="text-xs text-zinc-400 hover:text-white"><i class="fa-regular fa-copy"></i></button>
+                        </div>
+                        <pre id="kt-code" class="text-xs font-mono text-zinc-300 overflow-x-auto leading-relaxed">
+val streamUrl = "https://tu-dominio.com/api/v1/stream/104"
+val mediaItem = MediaItem.fromUri(streamUrl)
+player.setMediaItem(mediaItem)
+player.prepare()</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AUTHENTICATION MODAL -->
+    <div id="auth-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full p-8 rounded-3xl relative border border-white/15 space-y-6 shadow-2xl">
+            <button onclick="closeAuthModal()" class="absolute top-5 right-5 text-zinc-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 rounded-2xl bg-white text-black font-heading font-black text-lg flex items-center justify-center mx-auto">
+                    SK
+                </div>
+                <h3 class="font-heading font-extrabold text-2xl text-white" id="modal-title">Iniciar Sesión</h3>
+                <p class="text-xs text-zinc-400 font-mono" id="modal-subtitle">Accede a tu panel e interfaz de control.</p>
+            </div>
+
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="text-xs font-mono text-zinc-300">Correo Electrónico:</label>
+                    <input type="email" id="auth-email" required placeholder="developer@empresa.com" class="w-full glass-input p-3.5 rounded-2xl text-xs mt-1">
+                </div>
+                <div>
+                    <label class="text-xs font-mono text-zinc-300">Contraseña:</label>
+                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full glass-input p-3.5 rounded-2xl text-xs mt-1">
+                </div>
+
+                <button type="submit" class="w-full py-3.5 bg-white text-black font-extrabold text-xs rounded-2xl hover:bg-zinc-200 transition shadow-xl font-mono uppercase tracking-wider">
+                    <span id="modal-submit-btn">Entrar al Sistema</span>
+                </button>
+            </form>
+
+            <div class="text-center pt-2">
+                <button onclick="toggleAuthMode()" class="text-xs font-mono text-zinc-400 hover:text-white underline">
+                    <span id="modal-toggle-text">¿No tienes cuenta? Regístrate aquí</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PERSISTENT MUSIC PLAYER BAR -->
+    <div id="player-bar" class="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-white/10 px-6 py-3 transition-all transform translate-y-full">
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            
             <div class="flex items-center space-x-3 w-1/3">
-                <img id="player-cover" src="" class="w-11 h-11 object-cover rounded-lg bg-zinc-900 border border-zinc-800">
+                <img id="player-cover" src="https://via.placeholder.com/150" class="w-12 h-12 object-cover rounded-xl bg-zinc-900 border border-white/10">
                 <div class="truncate">
-                    <h4 id="player-title" class="font-semibold text-white text-xs truncate">Título</h4>
-                    <p id="player-artist" class="text-[11px] text-zinc-400 truncate">Artista</p>
+                    <h4 id="player-title" class="font-bold text-white text-xs truncate">Selecciona una pista</h4>
+                    <p id="player-artist" class="text-[11px] text-zinc-400 truncate">--</p>
                 </div>
             </div>
 
-            <div class="flex items-center justify-center space-x-3 w-1/3">
-                <button onclick="togglePlay()" id="btn-play" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition">
+            <div class="flex items-center justify-center space-x-4 w-1/3">
+                <button onclick="togglePlay()" id="btn-play" class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition shadow-lg">
                     <i class="fa-solid fa-play text-xs ml-0.5"></i>
                 </button>
-                <button onclick="openLyrics()" class="text-xs text-zinc-300 hover:text-white px-3 py-1.5 rounded-lg bg-[#181b26] border border-[#252a3b]">
-                    Letra
+                <button onclick="openLyricsModal()" class="text-xs text-zinc-300 hover:text-white px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 font-mono">
+                    Ver Letra
                 </button>
             </div>
 
             <div class="flex items-center justify-end w-1/3">
-                <span id="player-source" class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#181b26] border border-[#252a3b] text-zinc-400">SC</span>
+                <span id="player-source" class="text-[10px] font-mono px-2.5 py-1 rounded-lg bg-white/10 text-zinc-300 border border-white/10">STREAMING OGG</span>
             </div>
+
         </div>
     </div>
 
-    <!-- MODAL LETRAS -->
-    <div id="lyrics-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
-        <div class="music-card max-w-md w-full p-6 rounded-2xl relative space-y-3">
-            <button onclick="closeLyrics()" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
+    <!-- LYRICS MODAL -->
+    <div id="lyrics-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-lg w-full p-6 rounded-3xl relative space-y-4 border border-white/15">
+            <button onclick="closeLyricsModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Letra de la Canción</h3>
-            <div id="lyrics-content" class="text-xs font-mono text-zinc-300 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed bg-[#090a0f] p-4 rounded-xl border border-[#1e2230]"></div>
+            <h3 class="font-heading font-extrabold text-lg text-white">Letra de la Canción</h3>
+            <div id="lyrics-content" class="text-xs font-mono text-zinc-300 max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed bg-black/60 p-4 rounded-2xl border border-white/10"></div>
         </div>
     </div>
 
-    <iframe id="audio-iframe" class="hidden" allow="autoplay"></iframe>
-
+    <!-- LOGIC SYSTEM & REAL API CONNECTIVITY -->
     <script>
-        let songs = [];
+        let currentAuthMode = 'login';
+        let currentUser = JSON.parse(localStorage.getItem('sekai_user')) || null;
+        let globalCatalog = [];
         let currentGenre = '';
         let currentSong = null;
+        let isPlaying = false;
+        let requestsChart = null;
+        let clientsChart = null;
+        let searchTimeout = null;
 
-        const genresList = ["Eve", "Trío Los Panchos", "Post-Punk", "City Pop", "Boleros", "Indie Rock", "Synthwave", "Lofi Beats", "Shoegaze", "Anime OST"];
+        const audioElement = document.getElementById('main-audio-player');
+        const defaultGenres = ["Eve", "Trío Los Panchos", "Post-Punk", "City Pop", "Boleros", "Indie Rock", "Lofi Beats", "Anime OST", "J-Pop", "Vocaloid"];
 
-        function renderGenreFilters() {
-            const container = document.getElementById('genre-filters');
-            const buttons = genresList.map(g => `
-                <button onclick="setGenreFilter('${g}')" class="genre-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-[#12141d] hover:bg-[#1a1d2b] border border-[#1e2230] text-zinc-300 hover:text-white whitespace-nowrap transition">${g}</button>
-            `).join('');
-            container.innerHTML += buttons;
-        }
+        // Elementos UI del reproductor
+        audioElement.addEventListener('ended', () => {
+            isPlaying = false;
+            updatePlayButton();
+        });
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-
-            document.getElementById('btn-catalog').className = tabId === 'catalog' ? 'px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white text-black' : 'px-3.5 py-1.5 text-xs font-semibold rounded-lg text-zinc-400 hover:text-white';
-            document.getElementById('btn-docs').className = tabId === 'docs' ? 'px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white text-black' : 'px-3.5 py-1.5 text-xs font-semibold rounded-lg text-zinc-400 hover:text-white';
-        }
-
-        function toggleAdmin() {
-            const admin = document.getElementById('admin');
-            admin.classList.toggle('hidden');
-        }
-
-        async function fetchSongs() {
+        // 1. CARGA INICIAL Y CONEXIÓN A BACKEND
+        async function fetchCatalog() {
             try {
                 const res = await fetch('/api/v1/catalog');
                 const data = await res.json();
-                songs = data.catalog || [];
-                document.getElementById('song-count').innerText = songs.length;
-                renderSongs(songs);
+                if (data.status === 'success') {
+                    globalCatalog = data.catalog || [];
+                    renderSongs(globalCatalog);
+                    
+                    const statTotal = document.getElementById('stat-total-songs');
+                    if (statTotal) statTotal.innerText = data.total || globalCatalog.length;
+                }
             } catch (e) {
-                document.getElementById('catalog-grid').innerHTML = `<p class="col-span-full text-center text-zinc-500 py-12 text-xs">Cargando catálogo...</p>`;
+                console.error('Error al cargar catálogo:', e);
             }
+        }
+
+        async function fetchHealth() {
+            try {
+                const res = await fetch('/api/health');
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    document.getElementById('db-health-status').innerText = `Operacional (${data.db})`;
+                    document.getElementById('stat-active-streams').innerText = `${data.streams} / ${data.max_streams}`;
+                    document.getElementById('stream-limit-display').innerText = `${data.max_streams} Simultáneos`;
+                    document.getElementById('stat-uptime').innerText = `${data.uptime_sec}s`;
+                }
+            } catch (_) {}
+        }
+
+        // 2. NAVEGACIÓN ENTRE VISTAS
+        function showView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewId}`).classList.add('active');
+
+            ['landing', 'catalog', 'docs', 'dashboard'].forEach(nav => {
+                const btn = document.getElementById(`nav-${nav}`);
+                if (btn) {
+                    btn.className = (nav === viewId) 
+                        ? 'px-5 py-2 rounded-full text-white bg-white/10 font-bold transition'
+                        : 'px-5 py-2 rounded-full text-zinc-400 hover:text-white transition';
+                }
+            });
+
+            if (viewId === 'dashboard') {
+                initDashboardCharts();
+                fetchHealth();
+            }
+        }
+
+        // 3. REPRODUCTOR DE AUDIO REAL (OGG STREAMING)
+        function playTrack(song) {
+            currentSong = song;
+            document.getElementById('player-title').innerText = song.title;
+            document.getElementById('player-artist').innerText = song.artist || 'Desconocido';
+            document.getElementById('player-cover').src = song.cover_url || 'https://via.placeholder.com/150';
+            document.getElementById('player-source').innerText = (song.source || 'OGG STREAM').toUpperCase();
+            document.getElementById('player-bar').classList.remove('translate-y-full');
+
+            const streamUrl = song.stream_url || `/api/v1/stream/${song.id}`;
+            audioElement.src = streamUrl;
+            
+            audioElement.play().then(() => {
+                isPlaying = true;
+                updatePlayButton();
+            }).catch(err => {
+                console.error("Error reproduciendo audio:", err);
+                alert("No se pudo iniciar el stream de audio.");
+            });
+        }
+
+        function togglePlay() {
+            if (!currentSong) return;
+            if (isPlaying) {
+                audioElement.pause();
+                isPlaying = false;
+            } else {
+                audioElement.play();
+                isPlaying = true;
+            }
+            updatePlayButton();
+        }
+
+        function updatePlayButton() {
+            const btn = document.getElementById('btn-play');
+            btn.innerHTML = isPlaying 
+                ? '<i class="fa-solid fa-pause text-xs"></i>' 
+                : '<i class="fa-solid fa-play text-xs ml-0.5"></i>';
+        }
+
+        function openLyricsModal() {
+            if (!currentSong) return;
+            document.getElementById('lyrics-content').innerText = currentSong.lyrics || "Letra no disponible aún para esta pista.";
+            document.getElementById('lyrics-modal').classList.remove('hidden');
+        }
+
+        function closeLyricsModal() {
+            document.getElementById('lyrics-modal').classList.add('hidden');
+        }
+
+        // 4. BÚSQUEDA Y FILTRADO
+        function handleSearch(query) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                if (!query.trim()) {
+                    renderSongs(globalCatalog);
+                    return;
+                }
+                try {
+                    const res = await fetch(`/api/v1/search?q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        renderSongs(data.results);
+                    }
+                } catch (e) {
+                    console.error('Error buscando:', e);
+                }
+            }, 300);
+        }
+
+        function renderGenreFilters() {
+            const container = document.getElementById('genre-filters');
+            defaultGenres.forEach(g => {
+                const btn = document.createElement('button');
+                btn.onclick = () => setGenreFilter(g);
+                btn.className = "genre-btn px-4 py-2 rounded-xl text-xs font-semibold glass-card text-zinc-300 hover:text-white whitespace-nowrap transition";
+                btn.innerText = g;
+                container.appendChild(btn);
+            });
+        }
+
+        function setGenreFilter(genre) {
+            currentGenre = genre;
+            if (!genre) {
+                renderSongs(globalCatalog);
+                return;
+            }
+            const filtered = globalCatalog.filter(s => (s.genre || '').toLowerCase().includes(genre.toLowerCase()));
+            renderSongs(filtered);
         }
 
         function renderSongs(data) {
             const grid = document.getElementById('catalog-grid');
             if (!data || data.length === 0) {
-                grid.innerHTML = `<p class="col-span-full text-center text-zinc-500 py-12 text-xs">No se encontraron pistas.</p>`;
+                grid.innerHTML = `<p class="col-span-full text-center text-zinc-500 py-12 text-xs font-mono">No se encontraron pistas en la base de datos.</p>`;
                 return;
             }
 
             grid.innerHTML = data.map(song => `
-                <div class="music-card rounded-xl p-2.5 flex flex-col justify-between group cursor-pointer" onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")})'>
-                    <div class="relative aspect-square rounded-lg bg-zinc-900 overflow-hidden mb-2">
-                        <img src="${song.cover_url || 'https://via.placeholder.com/300'}" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                            <div class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center shadow-lg">
+                <div class="glass-card rounded-2xl p-3 flex flex-col justify-between group cursor-pointer" onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")})'>
+                    <div class="relative aspect-square rounded-xl bg-zinc-900 overflow-hidden mb-2">
+                        <img src="${song.cover_url || 'https://via.placeholder.com/300'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <div class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-xl">
                                 <i class="fa-solid fa-play text-xs ml-0.5"></i>
                             </div>
                         </div>
                     </div>
                     <div>
-                        <h4 class="font-semibold text-white text-xs line-clamp-1">${song.title}</h4>
+                        <h4 class="font-bold text-white text-xs line-clamp-1">${song.title}</h4>
                         <p class="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">${song.artist}</p>
                     </div>
-                    <div class="mt-2 pt-2 border-t border-[#1e2230] flex items-center justify-between text-[10px] text-zinc-500">
-                        <span class="bg-[#181b26] px-1.5 py-0.5 rounded border border-[#252a3b] text-zinc-400">${song.genre || 'Indie'}</span>
-                        <span class="font-mono text-zinc-500">${(song.source || 'sc').toUpperCase()}</span>
+                    <div class="mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono text-zinc-500">
+                        <span class="bg-white/10 px-2 py-0.5 rounded text-zinc-300">${song.genre || 'General'}</span>
+                        <span>${(song.source || 'db').toUpperCase()}</span>
                     </div>
                 </div>
             `).join('');
         }
 
-        function playTrack(song) {
-            currentSong = song;
-            document.getElementById('player-title').innerText = song.title;
-            document.getElementById('player-artist').innerText = song.artist;
-            document.getElementById('player-cover').src = song.cover_url;
-            document.getElementById('player-source').innerText = (song.source || 'SC').toUpperCase();
+        // 5. SUBIDA MANUAL DE CANCIONES (POST /api/upload)
+        function toggleAdminPanel() {
+            document.getElementById('admin-panel').classList.toggle('hidden');
+        }
 
-            document.getElementById('player-bar').classList.remove('translate-y-full');
+        async function addCustomSong(e) {
+            e.preventDefault();
+            const songData = {
+                title: document.getElementById('song-title').value,
+                artist: document.getElementById('song-artist').value,
+                genre: document.getElementById('song-genre').value || 'General',
+                duration: document.getElementById('song-duration').value || 180,
+                audio_url: document.getElementById('song-audio-url').value,
+                cover_url: document.getElementById('song-cover-url').value,
+                lyrics: document.getElementById('song-lyrics').value
+            };
 
-            let embedUrl = song.audio_url;
-            if (song.source === 'youtube' || embedUrl.includes('youtube.com') || embedUrl.includes('youtu.be')) {
-                const id = embedUrl.split('v=')[1] || embedUrl.split('/').pop();
-                embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1`;
-            } else if (song.source === 'soundcloud' || embedUrl.includes('soundcloud.com')) {
-                embedUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(embedUrl)}&auto_play=true`;
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': 'sekai_secret_key_123'
+                    },
+                    body: JSON.stringify(songData)
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    alert('¡Canción subida e inyectada con éxito!');
+                    document.getElementById('upload-form').reset();
+                    toggleAdminPanel();
+                    fetchCatalog();
+                } else {
+                    alert('Error: ' + (data.error || 'No se pudo insertar'));
+                }
+            } catch (err) {
+                alert('Error al conectar con la API.');
             }
-
-            document.getElementById('audio-iframe').src = embedUrl;
         }
 
-        function openLyrics() {
-            if (!currentSong) return;
-            document.getElementById('lyrics-content').innerText = currentSong.lyrics || "Letra no disponible";
-            document.getElementById('lyrics-modal').classList.remove('hidden');
-        }
+        // 6. DASHBOARD Y AUTENTICACIÓN
+        function initDashboardCharts() {
+            const ctx1 = document.getElementById('requestsChart').getContext('2d');
+            const ctx2 = document.getElementById('clientsChart').getContext('2d');
 
-        function closeLyrics() {
-            document.getElementById('lyrics-modal').classList.add('hidden');
-        }
+            if (requestsChart) requestsChart.destroy();
+            if (clientsChart) clientsChart.destroy();
 
-        function setGenreFilter(genre) {
-            currentGenre = genre;
-            filterSongs();
-        }
-
-        function filterSongs() {
-            const query = document.getElementById('search-input').value.toLowerCase();
-            const filtered = songs.filter(s => {
-                const matchGenre = currentGenre ? (s.genre || '').toLowerCase().includes(currentGenre.toLowerCase()) || (s.artist || '').toLowerCase().includes(currentGenre.toLowerCase()) : true;
-                const matchQuery = s.title.toLowerCase().includes(query) || s.artist.toLowerCase().includes(query) || (s.genre || '').toLowerCase().includes(query);
-                return matchGenre && matchQuery;
+            requestsChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'],
+                    datasets: [{
+                        label: 'Peticiones Totales',
+                        data: [280000, 340000, 290000, 412800],
+                        borderColor: '#ffffff',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a1a1aa' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a1a1aa' } }
+                    }
+                }
             });
-            renderSongs(filtered);
+
+            clientsChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Android Nativo', 'Android WebView', 'Web App'],
+                    datasets: [{
+                        data: [50, 32, 18],
+                        backgroundColor: ['#10b981', '#0284c7', '#a855f7'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa' } } }
+                }
+            });
         }
 
-        renderGenreFilters();
-        fetchSongs();
+        function refreshDashboardMetrics() {
+            fetchHealth();
+            initDashboardCharts();
+        }
+
+        function openAuthModal(mode) {
+            currentAuthMode = mode;
+            updateModalUI();
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+
+        function toggleAuthMode() {
+            currentAuthMode = (currentAuthMode === 'login') ? 'register' : 'login';
+            updateModalUI();
+        }
+
+        function updateModalUI() {
+            const isReg = currentAuthMode === 'register';
+            document.getElementById('modal-title').innerText = isReg ? 'Crear Cuenta Enterprise' : 'Iniciar Sesión';
+            document.getElementById('modal-subtitle').innerText = isReg ? 'Genera tu clave API personal.' : 'Accede a tu panel.';
+            document.getElementById('modal-submit-btn').innerText = isReg ? 'Registrarse & Generar Key' : 'Entrar al Sistema';
+            document.getElementById('modal-toggle-text').innerText = isReg ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate aquí';
+        }
+
+        function handleAuthSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            currentUser = { email, apiKey: 'sekai_secret_key_123' };
+            localStorage.setItem('sekai_user', JSON.stringify(currentUser));
+            updateUserSessionUI();
+            closeAuthModal();
+            showView('dashboard');
+        }
+
+        function logoutUser() {
+            currentUser = null;
+            localStorage.removeItem('sekai_user');
+            updateUserSessionUI();
+            showView('landing');aja
+        }
+
+        function updateUserSessionUI() {
+            const authBtns = document.getElementById('auth-buttons-container');
+            const userProfile = document.getElementById('user-profile-container');
+            if (currentUser) {
+                authBtns.classList.add('hidden');
+                userProfile.classList.remove('hidden');
+                document.getElementById('user-display-email').innerText = currentUser.email;
+            } else {
+                authBtns.classList.remove('hidden');
+                userProfile.classList.add('hidden');
+            }
+        }
+
+        function toggleKeyVisibility() {
+            const input = document.getElementById('user-api-key-input');
+            const icon = document.getElementById('eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-regular fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-regular fa-eye';
+            }
+        }
+
+        function copyUserApiKey() {
+            const input = document.getElementById('user-api-key-input');
+            navigator.clipboard.writeText(input.value);
+            alert('¡Clave API copiada!');
+        }
+
+        function copySnippet(id) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text);
+            alert('Código copiado.');
+        }
+
+        function executeSandboxFetch() {
+            fetchCatalog();
+            alert('Catálogo sincronizado desde el servidor.');
+        }
+
+        // Inicialización DOM
+        window.addEventListener('DOMContentLoaded', () => {
+            renderGenreFilters();
+            fetchCatalog();
+            updateUserSessionUI();
+            fetchHealth();
+        });
     </script>
 </body>
 </html>
+
