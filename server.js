@@ -508,7 +508,7 @@ async function runSlowScraper(maxSongsTarget = 1000, customCategory = null) {
         }
     } catch (e) {
         console.error('Error general en scraper:', e.message);
-    } fontinally {
+    } finally {
         isScraperRunning = false;
         scraperCancelRequested = false;
     }
@@ -987,4 +987,3 @@ app.listen(PORT, async () => {
         }
     }
 });
-
