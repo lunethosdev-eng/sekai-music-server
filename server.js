@@ -644,7 +644,159 @@ function convertStreamToOgg(inputStream) {
     return outputStream;
 }
 
-// REST ENDPOINTS
+// =========================================================================
+// 📻 MOTOR GLOBAL DE RADIO (RADIO BROWSER INTEGRATION & PROXY)
+// =========================================================================
+
+async function getRadioBrowserServer() {
+    try {
+        return 'https://de1.api.radio-browser.info/json';
+    } catch (_) {
+        return 'https://de1.api.radio-browser.info/json';
+    }
+}
+
+// 1. Obtener Lista Global de Países
+app.get('/api/v1/radios/countries', async (req, res) => {
+    try {
+        const baseUrl = await getRadioBrowserServer();
+        const response = await axios.get(`${baseUrl}/countries`, {
+            headers: { 'User-Agent': 'SekaiRadioEngine/2.0' },
+            timeout: 8000
+        });
+
+        res.json({
+            status: 'success',
+            total: response.data.length,
+            countries: response.data
+                .filter(c => c.stationcount > 0)
+                .map(c => ({
+                    name: c.name,
+                    code: c.iso_3166_1,
+                    station_count: c.stationcount
+                }))
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
+// 2. Obtener Estados / Provincias por País
+app.get('/api/v1/radios/states/:country', async (req, res) => {
+    try {
+        const { country } = req.params;
+        const baseUrl = await getRadioBrowserServer();
+        const response = await axios.get(`${baseUrl}/states/${encodeURIComponent(country)}`, {
+            headers: { 'User-Agent': 'SekaiRadioEngine/2.0' },
+            timeout: 8000
+        });
+
+        res.json({
+            status: 'success',
+            country,
+            total: response.data.length,
+            states: response.data
+                .filter(s => s.stationcount > 0 && s.name.trim() !== '')
+                .map(s => ({
+                    name: s.name,
+                    station_count: s.stationcount
+                }))
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
+// 3. Buscador y Filtro Multicriterio de Emisoras
+app.get('/api/v1/radios/search', async (req, res) => {
+    try {
+        const { country, state, name, tag, limit = 60, offset = 0 } = req.query;
+        const baseUrl = await getRadioBrowserServer();
+
+        const params = {
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            order: 'votes',
+            reverse: true,
+            hidebroken: true
+        };
+
+        if (country) params.country = country;
+        if (state) params.state = state;
+        if (name) params.name = name;
+        if (tag) params.tag = tag;
+
+        const response = await axios.get(`${baseUrl}/stations/search`, {
+            params,
+            headers: { 'User-Agent': 'SekaiRadioEngine/2.0' },
+            timeout: 10000
+        });
+
+        const stations = response.data.map(station => {
+            const rawStream = station.url_resolved || station.url;
+            return {
+                id: station.stationuuid,
+                name: station.name ? station.name.trim() : 'Radio Sin Nombre',
+                raw_url: rawStream,
+                proxy_stream: `${RENDER_URL}/api/v1/radios/proxy?url=${encodeURIComponent(rawStream)}`,
+                homepage: station.homepage,
+                favicon: station.favicon || 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=300&q=80',
+                country: station.country,
+                country_code: station.countrycode,
+                state: station.state,
+                tags: station.tags ? station.tags.split(',').slice(0, 5) : [],
+                votes: station.votes,
+                codec: station.codec || 'MP3',
+                bitrate: station.bitrate || 128
+            };
+        });
+
+        res.json({
+            status: 'success',
+            total: stations.length,
+            stations
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
+// 4. Proxy de Audio en Vivo (Solución a Contenido Mixto HTTP/HTTPS y CORS)
+app.get('/api/v1/radios/proxy', async (req, res) => {
+    const { url } = req.query;
+    if (!url) {
+        return res.status(400).json({ status: 'error', message: 'Se requiere el parámetro ?url=' });
+    }
+
+    try {
+        const streamResponse = await axios({
+            method: 'get',
+            url: decodeURIComponent(url),
+            responseType: 'stream',
+            timeout: 15000,
+            headers: {
+                'User-Agent': getRandomUserAgent(),
+                'Accept': '*/*'
+            }
+        });
+
+        res.setHeader('Content-Type', streamResponse.headers['content-type'] || 'audio/mpeg');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+
+        streamResponse.data.pipe(res);
+
+        req.on('close', () => {
+            try { streamResponse.data.destroy(); } catch (_) {}
+        });
+    } catch (err) {
+        if (!res.headersSent) {
+            res.status(502).json({ status: 'error', message: 'No se pudo conectar con el servidor de radio en vivo.', details: err.message });
+        }
+    }
+});
+
+// REST ENDPOINTS GENERALES
 
 app.get('/api/system/status', (req, res) => {
     res.json({
@@ -987,3 +1139,4 @@ app.listen(PORT, async () => {
         }
     }
 });
+
