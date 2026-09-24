@@ -1,56 +1,42 @@
 <!DOCTYPE html>
-<html lang="es" class="dark scroll-smooth">
+<html lang="es" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sekai Enterprise Audio Infrastructure & Dynamic APIs</title>
-    
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>SEKAI Enterprise · Infraestructura de Audio</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@500;700;800&display=swap" rel="stylesheet">
-    
-    <!-- FontAwesome 6 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                        heading: ['Syne', 'sans-serif'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace'],
                     },
                     colors: {
-                        brand: {
-                            50: '#f8fafc',
-                            100: '#f1f5f9',
-                            500: '#64748b',
-                            900: '#090a0f',
-                            950: '#030305',
+                        cream: { 50: '#FDFCFB', 100: '#F7F5F2', 200: '#F0EDE8' },
+                        pastel: {
+                            pink: '#F2C4CE', pinkSoft: '#F8DCE2',
+                            blue: '#C5D4E8', blueSoft: '#E0E8F2',
+                            mint: '#C8E0D5', mintSoft: '#E0F0E8',
+                            coral: '#E8B4A0'
                         }
                     },
-                    animation: {
-                        'liquid-shine': 'shine 8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'float': 'float 6s ease-in-out infinite',
-                    },
-                    keyframes: {
-                        shine: {
-                            '0%, 100%': { opacity: 0.4, transform: 'scale(1)' },
-                            '50%': { opacity: 0.8, transform: 'scale(1.05)' }
-                        },
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0px)' },
-                            '50%': { transform: 'translateY(-10px)' }
-                        }
+                    boxShadow: {
+                        'glass': '0 8px 32px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)',
+                        'glass-lg': '0 16px 48px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04)',
+                        'soft': '0 4px 20px rgba(0,0,0,0.05)',
                     }
                 }
             }
@@ -58,279 +44,253 @@
     </script>
 
     <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.62);
+            --glass-border: rgba(255, 255, 255, 0.55);
+            --glass-blur: 24px;
+        }
         body {
-            background-color: #030305;
-            color: #f1f5f9;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            overflow-x: hidden;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+            background-color: #F7F5F2;
+            color: #2C2A28;
+            font-family: 'Inter', system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
-
-        .glass-panel {
-            background: rgba(18, 20, 29, 0.65);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6);
         }
-
+        .glass-strong {
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(32px) saturate(180%);
+            -webkit-backdrop-filter: blur(32px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.7);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.7);
+        }
         .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.07);
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            background: rgba(255, 255, 255, 0.55);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
         }
-
         .glass-card:hover {
-            background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.72);
+            border-color: rgba(255,255,255,0.75);
             transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.07);
         }
-
-        .glass-button {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(12px);
-            transition: all 0.25s ease;
-        }
-
-        .glass-button:hover {
-            background: rgba(255, 255, 255, 0.95);
-            color: #000000;
-            border-color: #ffffff;
-        }
-
-        .glass-input {
-            background: rgba(10, 11, 16, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            color: #ffffff;
-        }
-
-        .ambient-glow {
-            position: fixed;
-            width: 80vw;
-            max-width: 600px;
-            height: 80vw;
-            max-height: 600px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+        .glass::before, .glass-strong::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, transparent 40%);
             pointer-events: none;
             z-index: 0;
         }
-
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: #030305; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 9999px; }
-
-        .view-section { display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
+        .btn-primary {
+            background: #F2C4CE;
+            color: #5C3A42;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 12px rgba(242, 196, 206, 0.4);
+        }
+        .btn-primary:hover {
+            background: #EBB0BD;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(242, 196, 206, 0.5);
+        }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-secondary {
+            background: rgba(255,255,255,0.6);
+            border: 1px solid rgba(0,0,0,0.06);
+            color: #4A4643;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.9);
+            border-color: rgba(0,0,0,0.1);
+        }
+        .btn-ghost { color: #6B6560; transition: all 0.2s ease; }
+        .btn-ghost:hover { color: #2C2A28; background: rgba(0,0,0,0.04); }
+        .input-glass {
+            background: rgba(255,255,255,0.7);
+            border: 1px solid rgba(0,0,0,0.06);
+            transition: all 0.2s ease;
+        }
+        .input-glass:focus {
+            outline: none;
+            border-color: #C5D4E8;
+            box-shadow: 0 0 0 3px rgba(197, 212, 232, 0.35);
+            background: rgba(255,255,255,0.9);
+        }
+        .view-section { display: none; opacity: 0; transition: opacity 0.25s ease; }
         .view-section.active { display: block; opacity: 1; }
 
-        .gradient-text-mono {
-            background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        #map { height: 420px; border-radius: 1.25rem; z-index: 1; }
+        .leaflet-container { background: #F0EDE8; font-family: Inter, sans-serif; }
+        .leaflet-control-zoom a {
+            background: rgba(255,255,255,0.9) !important;
+            color: #2C2A28 !important;
+            border: 1px solid rgba(0,0,0,0.08) !important;
+            width: 34px !important;
+            height: 34px !important;
+            line-height: 34px !important;
+            border-radius: 10px !important;
+            margin-bottom: 6px !important;
+        }
+        .leaflet-bar { border: none !important; box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important; }
+        .country-tooltip {
+            background: rgba(255,255,255,0.95);
+            border: none;
+            border-radius: 10px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
         }
 
-        /* Estilos del Mapa Interactivo */
-        .country-node {
-            cursor: pointer;
-            fill: #1e293b;
-            stroke: #334155;
-            stroke-width: 1.5;
-            transition: all 0.3s ease;
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 999px; }
 
-        .country-node:hover {
-            fill: #3b82f6;
-            stroke: #60a5fa;
-            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
-        }
+        #player-bar { transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
 
-        .country-node.active-radio {
-            fill: #10b981;
-            stroke: #34d399;
-            animation: pulse-country 2s infinite;
-        }
-
-        @keyframes pulse-country {
-            0% { fill: #10b981; }
-            50% { fill: #059669; }
-            100% { fill: #10b981; }
+        @media (max-width: 640px) {
+            .glass, .glass-strong, .glass-card {
+                backdrop-filter: blur(18px) saturate(160%);
+                -webkit-backdrop-filter: blur(18px) saturate(160%);
+            }
+            #map { height: 340px; }
         }
     </style>
 </head>
-<body class="relative min-h-screen flex flex-col justify-between selection:bg-white selection:text-black pb-28 md:pb-24">
+<body class="relative min-h-screen flex flex-col selection:bg-pastel-pink/40 selection:text-[#5C3A42] pb-24 sm:pb-20">
 
-    <!-- Audio Element -->
     <audio id="main-audio-player" class="hidden"></audio>
 
-    <div class="ambient-glow top-[-100px] left-1/2 -translate-x-1/2 animate-liquid-shine"></div>
-
-    <!-- PANTALLA DE MANTENIMIENTO GLOBAL SUPERPUESTA -->
-    <div id="maintenance-screen" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl hidden flex flex-col items-center justify-center p-6 text-center">
-        <div class="w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-6 animate-pulse">
-            <i class="fa-solid fa-screwdriver-wrench text-3xl"></i>
+    <!-- Mantenimiento -->
+    <div id="maintenance-screen" class="fixed inset-0 z-[100] bg-cream-100/95 backdrop-blur-xl hidden flex flex-col items-center justify-center p-6 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-pastel-coral/20 border border-pastel-coral/30 flex items-center justify-center text-[#8B5E4A] mb-5">
+            <i class="fa-solid fa-screwdriver-wrench text-2xl"></i>
         </div>
-        <h1 class="font-heading font-extrabold text-3xl sm:text-5xl text-white mb-3">Mantenimiento en Proceso</h1>
-        <p id="maintenance-message-text" class="text-zinc-400 text-sm sm:text-base max-w-lg font-mono mb-8">
-            El sistema se encuentra en mantenimiento programado. Por favor, reintente en unos minutos.
-        </p>
-        <div class="inline-flex items-center space-x-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-mono text-zinc-300">
-            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-            <span>Comando activado desde servidor de control</span>
+        <h1 class="text-2xl sm:text-3xl font-semibold text-[#2C2A28] mb-2">Mantenimiento en proceso</h1>
+        <p id="maintenance-message-text" class="text-sm text-[#6B6560] max-w-md mb-6">El sistema se encuentra en mantenimiento programado.</p>
+    </div>
+
+    <!-- Anuncio -->
+    <div id="global-announcement-bar" class="hidden bg-pastel-blue/30 border-b border-pastel-blue/40 px-4 py-2.5 text-xs text-center sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-center gap-2 text-[#3A4A5C]">
+            <i class="fa-solid fa-bullhorn text-pastel-coral"></i>
+            <span class="font-medium">Anuncio:</span>
+            <span id="global-announcement-text">Cargando...</span>
         </div>
     </div>
 
-    <!-- BARRA DE ANUNCIO GLOBAL EN TIEMPO REAL -->
-    <div id="global-announcement-bar" class="hidden bg-gradient-to-r from-purple-900/80 via-indigo-900/80 to-blue-900/80 border-b border-purple-500/30 px-4 py-2.5 text-xs font-mono text-white text-center sticky top-0 z-50 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto flex items-center justify-center space-x-2">
-            <i class="fa-solid fa-bullhorn text-amber-400 animate-bounce"></i>
-            <span class="font-bold text-amber-300">ANUNCIO OFICIAL:</span>
-            <span id="global-announcement-text">Cargando aviso...</span>
-        </div>
-    </div>
-
-    <!-- NAVBAR RESPONSIVE -->
-    <header class="sticky top-0 z-40 glass-panel border-b border-white/10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-            
-            <!-- Logo -->
-            <a href="#" onclick="showView('landing')" class="flex items-center space-x-3 shrink-0">
-                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white text-black font-heading font-black text-xs sm:text-sm flex items-center justify-center tracking-tighter shadow-xl">
-                    SK
-                </div>
-                <div>
-                    <span class="font-heading font-extrabold text-base sm:text-lg tracking-wider text-white flex items-center gap-1.5">
-                        SEKAI <span class="text-[9px] sm:text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">v5.0 ENTERPRISE</span>
-                    </span>
-                    <p class="hidden sm:block text-[9px] text-zinc-400 font-mono tracking-wider uppercase">Multi-Version Audio API Engine</p>
+    <!-- NAVBAR -->
+    <header class="sticky top-0 z-40 glass-strong border-b border-white/40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3">
+            <a href="#" onclick="showView('landing')" class="flex items-center gap-2.5 shrink-0">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#2C2A28] text-white font-semibold text-xs flex items-center justify-center tracking-tight shadow-soft">SK</div>
+                <div class="hidden sm:block">
+                    <span class="font-semibold text-sm sm:text-base text-[#2C2A28]">SEKAI</span>
+                    <span class="ml-1.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-pastel-pink/40 text-[#5C3A42] border border-pastel-pink/30">Enterprise</span>
                 </div>
             </a>
 
-            <!-- Desktop Nav -->
-            <nav class="hidden lg:flex items-center space-x-1 bg-white/5 border border-white/10 p-1.5 rounded-full text-xs font-medium backdrop-blur-md">
-                <button onclick="showView('landing')" id="nav-landing" class="px-4 py-2 rounded-full text-white bg-white/10 transition">Overview</button>
-                <button onclick="showView('catalog')" id="nav-catalog" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition">Catálogo Audio</button>
-                <button onclick="showView('worldmap')" id="nav-worldmap" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-earth-americas text-emerald-400"></i> Mundo 2 (Radios)
-                </button>
-                <button onclick="showView('docs')" id="nav-docs" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition">APIs (v1-v5)</button>
-                <button onclick="showView('dashboard')" id="nav-dashboard" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-chart-line text-[10px]"></i> Dashboard
-                </button>
+            <nav class="hidden lg:flex items-center gap-1 bg-white/40 border border-white/50 p-1 rounded-full text-sm font-medium">
+                <button onclick="showView('landing')" id="nav-landing" class="px-3.5 py-1.5 rounded-full text-[#2C2A28] bg-white/80 shadow-sm transition">Overview</button>
+                <button onclick="showView('catalog')" id="nav-catalog" class="px-3.5 py-1.5 rounded-full text-[#6B6560] hover:text-[#2C2A28] transition">Catálogo</button>
+                <button onclick="showView('worldmap')" id="nav-worldmap" class="px-3.5 py-1.5 rounded-full text-[#6B6560] hover:text-[#2C2A28] transition">Radios</button>
+                <button onclick="showView('docs')" id="nav-docs" class="px-3.5 py-1.5 rounded-full text-[#6B6560] hover:text-[#2C2A28] transition">APIs</button>
+                <button onclick="showView('dashboard')" id="nav-dashboard" class="px-3.5 py-1.5 rounded-full text-[#6B6560] hover:text-[#2C2A28] transition">Dashboard</button>
             </nav>
 
-            <!-- Auth Buttons Desktop -->
-            <div class="hidden sm:flex items-center space-x-2" id="auth-buttons-container">
-                <button onclick="openAuthModal('login')" class="text-xs font-semibold text-zinc-300 hover:text-white px-3 py-2 transition">
-                    Iniciar Sesión
-                </button>
-                <button onclick="openAuthModal('register')" class="glass-button text-xs font-bold px-4 py-2 rounded-full flex items-center space-x-1.5">
-                    <span>Generar API Key</span>
-                    <i class="fa-solid fa-key text-[10px]"></i>
-                </button>
+            <div class="hidden sm:flex items-center gap-2" id="auth-buttons-container">
+                <button onclick="openAuthModal('login')" class="btn-ghost text-sm font-medium px-3 py-1.5 rounded-full">Iniciar sesión</button>
+                <button onclick="openAuthModal('register')" class="btn-primary text-sm px-4 py-2 rounded-full">Obtener API Key</button>
             </div>
 
-            <!-- Profile Info Desktop -->
-            <div class="hidden sm:flex items-center space-x-2" id="user-profile-container">
-                <button onclick="showView('dashboard')" class="flex items-center space-x-2 bg-white/5 border border-white/10 hover:border-white/30 px-3 py-1.5 rounded-full transition max-w-[180px]">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                    <span id="user-display-email" class="text-xs font-mono font-medium text-zinc-200 truncate">usuario@empresa.com</span>
+            <div class="hidden sm:flex items-center gap-2" id="user-profile-container">
+                <button onclick="showView('dashboard')" class="flex items-center gap-2 bg-white/50 border border-white/60 px-3 py-1.5 rounded-full max-w-[180px]">
+                    <span class="w-2 h-2 rounded-full bg-pastel-mint shrink-0"></span>
+                    <span id="user-display-email" class="text-xs font-medium text-[#4A4643] truncate">usuario@empresa.com</span>
                 </button>
-                <button onclick="logoutUser()" title="Cerrar Sesión" class="w-8 h-8 rounded-full bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-white/10 flex items-center justify-center transition">
+                <button onclick="logoutUser()" class="w-8 h-8 rounded-full bg-white/50 hover:bg-red-50 text-[#6B6560] hover:text-red-500 border border-white/60 flex items-center justify-center">
                     <i class="fa-solid fa-power-off text-xs"></i>
                 </button>
             </div>
 
-            <!-- Mobile Menu Toggle Button -->
-            <button onclick="toggleMobileMenu()" aria-label="Abrir menú de navegación" class="lg:hidden w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-300">
-                <i class="fa-solid fa-bars text-sm" id="mobile-menu-icon"></i>
+            <button onclick="toggleMobileMenu()" class="lg:hidden w-9 h-9 rounded-xl bg-white/50 border border-white/60 flex items-center justify-center text-[#4A4643]">
+                <i class="fa-solid fa-bars text-sm"></i>
             </button>
-
         </div>
 
-        <!-- Mobile Navigation Menu -->
-        <div id="mobile-menu" class="hidden lg:hidden border-t border-white/10 bg-black/95 px-4 py-4 space-y-3">
-            <nav class="flex flex-col space-y-2 text-sm">
-                <button onclick="showView('landing'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Overview</button>
-                <button onclick="showView('catalog'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Catálogo Audio</button>
-                <button onclick="showView('worldmap'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-emerald-400 hover:bg-white/10 flex items-center gap-2">
-                    <i class="fa-solid fa-earth-americas"></i> Mundo 2 (Radios Globales)
-                </button>
-                <button onclick="showView('docs'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Documentación APIs</button>
-                <button onclick="showView('dashboard'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Dashboard</button>
+        <div id="mobile-menu" class="hidden lg:hidden border-t border-white/40 bg-cream-50/95 backdrop-blur-xl px-4 py-4 space-y-1">
+            <nav class="flex flex-col gap-1 text-sm font-medium">
+                <button onclick="showView('landing'); toggleMobileMenu()" class="text-left px-4 py-2.5 rounded-xl text-[#4A4643] hover:bg-white/60">Overview</button>
+                <button onclick="showView('catalog'); toggleMobileMenu()" class="text-left px-4 py-2.5 rounded-xl text-[#4A4643] hover:bg-white/60">Catálogo</button>
+                <button onclick="showView('worldmap'); toggleMobileMenu()" class="text-left px-4 py-2.5 rounded-xl text-[#4A4643] hover:bg-white/60">Radios mundiales</button>
+                <button onclick="showView('docs'); toggleMobileMenu()" class="text-left px-4 py-2.5 rounded-xl text-[#4A4643] hover:bg-white/60">Documentación APIs</button>
+                <button onclick="showView('dashboard'); toggleMobileMenu()" class="text-left px-4 py-2.5 rounded-xl text-[#4A4643] hover:bg-white/60">Dashboard</button>
             </nav>
-            <div class="pt-2 border-t border-white/10 flex flex-col space-y-2" id="mobile-auth-container">
-                <button onclick="openAuthModal('login'); toggleMobileMenu()" class="w-full py-2.5 rounded-xl bg-white/5 text-zinc-200 text-xs font-bold">Iniciar Sesión</button>
-                <button onclick="openAuthModal('register'); toggleMobileMenu()" class="w-full py-2.5 rounded-xl bg-white text-black text-xs font-bold">Obtener API Key Única</button>
+            <div class="pt-3 border-t border-black/5 flex flex-col gap-2">
+                <button onclick="openAuthModal('login'); toggleMobileMenu()" class="w-full py-2.5 rounded-xl bg-white/70 text-[#4A4643] text-sm font-medium border border-black/5">Iniciar sesión</button>
+                <button onclick="openAuthModal('register'); toggleMobileMenu()" class="w-full py-2.5 rounded-xl btn-primary text-sm">Obtener API Key</button>
             </div>
         </div>
     </header>
 
-    <!-- VIEW 1: LANDING PAGE -->
-    <section id="view-landing" class="view-section active max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex-grow w-full relative">
-        <div class="text-center space-y-6 max-w-4xl mx-auto pt-4 sm:pt-8">
-            <div class="inline-flex items-center space-x-2 bg-white/5 border border-white/15 px-3 py-1 rounded-full text-[11px] sm:text-xs font-mono text-zinc-300 animate-float">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>Infraestructura Sonora Multi-API (v1, v2, v3, v4, v5)</span>
+    <!-- VIEW 1: LANDING -->
+    <section id="view-landing" class="view-section active max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16 flex-grow w-full">
+        <div class="text-center max-w-3xl mx-auto space-y-6">
+            <div class="inline-flex items-center gap-2 bg-white/60 border border-white/70 px-3.5 py-1.5 rounded-full text-xs font-medium text-[#5C3A42] shadow-soft">
+                <span class="w-1.5 h-1.5 rounded-full bg-pastel-mint"></span>
+                Infraestructura de audio multi-API
             </div>
-
-            <h1 class="font-heading font-extrabold text-3xl sm:text-6xl lg:text-7xl tracking-tight text-white leading-tight">
-                Infraestructura Audio <br class="hidden sm:block">
-                <span class="gradient-text-mono italic">Ultra-Rápida & Real.</span>
+            <h1 class="text-3xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-[#2C2A28] leading-[1.15]">
+                Infraestructura de audio<br class="hidden sm:block">
+                <span class="text-[#5C3A42]">rápida y confiable.</span>
             </h1>
-
-            <p class="text-zinc-400 text-xs sm:text-base font-normal max-w-2xl mx-auto leading-relaxed">
-                APIs dedicadas e independientes por usuario. Métricas en tiempo real, transcodificación nativa OGG, letras sincronizadas LRC y transmisores de radio en vivo global.
+            <p class="text-sm sm:text-base text-[#6B6560] max-w-xl mx-auto leading-relaxed">
+                APIs dedicadas por usuario, métricas en tiempo real, transcodificación OGG nativa, letras LRC y radios en vivo globales.
             </p>
-
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                <button onclick="openAuthModal('register')" class="w-full sm:w-auto px-6 py-3.5 rounded-full bg-white text-black font-extrabold text-xs sm:text-sm hover:bg-zinc-200 transition shadow-2xl flex items-center justify-center space-x-2">
-                    <span>Crear Cuenta & Obtener API Key Única</span>
-                    <i class="fa-solid fa-key"></i>
+                <button onclick="openAuthModal('register')" class="w-full sm:w-auto btn-primary px-6 py-3 rounded-full text-sm flex items-center justify-center gap-2">
+                    <span>Obtener API Key</span>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
                 </button>
-                <button onclick="openAuthModal('login')" class="w-full sm:w-auto px-6 py-3.5 rounded-full glass-button font-bold text-xs sm:text-sm text-white flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-right-to-bracket"></i>
-                    <span>Acceder al Panel</span>
+                <button onclick="showView('docs')" class="w-full sm:w-auto btn-secondary px-6 py-3 rounded-full text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-book text-xs"></i>
+                    <span>Explorar documentación</span>
                 </button>
             </div>
         </div>
 
-        <div class="mt-12 sm:mt-16 glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-white/10 max-w-5xl mx-auto shadow-2xl overflow-hidden">
-            <div class="flex items-center justify-between pb-3 border-b border-white/10 text-[10px] sm:text-xs font-mono text-zinc-400">
-                <div class="flex items-center space-x-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-red-500/40"></span>
-                    <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/40"></span>
-                    <span class="w-2.5 h-2.5 rounded-full bg-green-500/40"></span>
-                    <span class="ml-2 font-bold text-white truncate">GET /api/v2/catalog</span>
+        <div class="mt-12 sm:mt-16 relative glass rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-4xl mx-auto overflow-hidden">
+            <div class="flex items-center justify-between pb-3 border-b border-black/5 text-xs text-[#6B6560]">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#FF5F57]"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-[#28C840]"></span>
+                    <span class="ml-2 font-mono font-medium text-[#2C2A28]">GET /api/v2/catalog</span>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">200 OK</span>
-                </div>
+                <span class="px-2 py-0.5 rounded-md bg-pastel-mint/40 text-[#3A5C4A] font-mono text-[10px] font-medium">200 OK</span>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                <div class="space-y-2">
-                    <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
-                        <span>Petición cURL Con Key Única</span>
-                    </div>
-                    <pre class="bg-black/60 p-3 sm:p-4 rounded-xl border border-white/10 text-[10px] sm:text-xs font-mono text-zinc-300 overflow-x-auto">
-curl -X GET "/api/v2/catalog" \
-  -H "x-api-key: sk_live_your_unique_user_key"</pre>
+                <div>
+                    <p class="text-[11px] font-medium text-[#6B6560] mb-2">Petición cURL</p>
+                    <pre class="bg-white/50 p-3 sm:p-4 rounded-xl border border-black/5 text-[10px] sm:text-xs font-mono text-[#4A4643] overflow-x-auto">curl -X GET "/api/v2/catalog" \
+  -H "x-api-key: sk_live_your_key"</pre>
                 </div>
-
-                <div class="space-y-2">
-                    <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
-                        <span>Respuesta JSON v2 Enriquecida</span>
-                        <span class="text-zinc-500">Live DB</span>
-                    </div>
-                    <pre class="bg-black/60 p-3 sm:p-4 rounded-xl border border-white/10 text-[10px] sm:text-xs font-mono text-emerald-400 overflow-x-auto max-h-36">
-{
+                <div>
+                    <p class="text-[11px] font-medium text-[#6B6560] mb-2">Respuesta JSON</p>
+                    <pre class="bg-white/50 p-3 sm:p-4 rounded-xl border border-black/5 text-[10px] sm:text-xs font-mono text-[#3A5C4A] overflow-x-auto max-h-36">{
   "status": "success",
   "version": "v2",
   "total": 3277,
@@ -341,276 +301,190 @@ curl -X GET "/api/v2/catalog" \
         </div>
     </section>
 
-    <!-- VIEW 2: MAPA DEL MUNDO 2 (RADIOS EN VIVO) -->
-    <section id="view-worldmap" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full space-y-6">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+    <!-- VIEW 2: WORLD MAP -->
+    <section id="view-worldmap" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 flex-grow w-full space-y-5">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-                <div class="inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-mono text-emerald-400 mb-2">
-                    <i class="fa-solid fa-signal animate-pulse"></i>
-                    <span>MUNDO 2 - Transmisión Global Sincronizada</span>
+                <div class="inline-flex items-center gap-2 bg-pastel-mint/30 border border-pastel-mint/40 px-3 py-1 rounded-full text-xs font-medium text-[#3A5C4A] mb-2">
+                    <i class="fa-solid fa-signal text-[10px]"></i>
+                    Transmisión global · Zoom y toque habilitados
                 </div>
-                <h1 class="font-heading font-extrabold text-2xl sm:text-4xl text-white">Mapa de Radios Mundiales</h1>
-                <p class="text-xs font-mono text-zinc-400 mt-1">Haz clic en cualquier país del mapa interactivo para escuchar su emisora nacional en vivo.</p>
+                <h1 class="text-2xl sm:text-3xl font-semibold text-[#2C2A28]">Mapa de radios mundiales</h1>
+                <p class="text-sm text-[#6B6560] mt-1">Haz zoom, arrastra y toca cualquier país. En muchos países puedes elegir estado.</p>
             </div>
-
-            <!-- Indicador Radio Activa -->
-            <div class="glass-card px-4 py-3 rounded-2xl border border-emerald-500/30 flex items-center space-x-3">
-                <div class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></div>
-                <div>
-                    <p class="text-[10px] font-mono uppercase text-zinc-400">Radio Seleccionada:</p>
-                    <p id="active-country-label" class="text-xs font-bold text-emerald-400 font-mono">Selecciona un país en el mapa</p>
+            <div class="glass-card px-4 py-3 rounded-2xl flex items-center gap-3 min-w-0">
+                <div class="w-2.5 h-2.5 rounded-full bg-pastel-mint shrink-0"></div>
+                <div class="min-w-0">
+                    <p class="text-[10px] uppercase tracking-wide text-[#6B6560]">Radio seleccionada</p>
+                    <p id="active-country-label" class="text-sm font-medium text-[#2C2A28] truncate">Selecciona un país o estado</p>
                 </div>
             </div>
         </div>
 
-        <!-- Contenedor del Mapa Interactivo SVG -->
-        <div class="glass-panel p-4 sm:p-6 rounded-3xl border border-white/10 relative overflow-hidden">
-            <div class="w-full overflow-x-auto">
-                <svg id="world-map-svg" viewBox="0 0 1000 500" class="w-full h-auto min-w-[700px]">
-                    <!-- Fondos de rejilla global -->
-                    <defs>
-                        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
-                        </pattern>
-                    </defs>
-                    <rect width="1000" height="500" fill="url(#grid)" />
-
-                    <!-- PAÍSES VECTORIALES INTERACTIVOS CON RADIOS INTEGRADAS -->
-                    <!-- América del Norte -->
-                    <path class="country-node" id="country-US" d="M 150 120 L 260 120 L 250 190 L 140 180 Z" onclick="playCountryRadio('US')" data-name="Estados Unidos" />
-                    <text x="180" y="155" fill="#ffffff" font-size="10" font-family="monospace" pointer-events="none">EE.UU. 🇺🇸</text>
-
-                    <path class="country-node" id="country-MX" d="M 160 190 L 220 190 L 200 240 L 170 230 Z" onclick="playCountryRadio('MX')" data-name="México" />
-                    <text x="175" y="215" fill="#ffffff" font-size="9" font-family="monospace" pointer-events="none">México 🇲🇽</text>
-
-                    <!-- América del Sur -->
-                    <path class="country-node" id="country-BR" d="M 280 270 L 360 260 L 340 350 L 290 330 Z" onclick="playCountryRadio('BR')" data-name="Brasil" />
-                    <text x="305" y="310" fill="#ffffff" font-size="10" font-family="monospace" pointer-events="none">Brasil 🇧🇷</text>
-
-                    <path class="country-node" id="country-AR" d="M 270 355 L 310 355 L 290 440 L 270 420 Z" onclick="playCountryRadio('AR')" data-name="Argentina" />
-                    <text x="272" y="395" fill="#ffffff" font-size="9" font-family="monospace" pointer-events="none">Argentina 🇦🇷</text>
-
-                    <!-- Europa -->
-                    <path class="country-node" id="country-ES" d="M 450 140 L 480 140 L 480 170 L 450 170 Z" onclick="playCountryRadio('ES')" data-name="España" />
-                    <text x="452" y="158" fill="#ffffff" font-size="8" font-family="monospace" pointer-events="none">España 🇪🇸</text>
-
-                    <path class="country-node" id="country-FR" d="M 470 110 L 505 110 L 500 138 L 470 138 Z" onclick="playCountryRadio('FR')" data-name="Francia" />
-                    <text x="473" y="128" fill="#ffffff" font-size="8" font-family="monospace" pointer-events="none">Francia 🇫🇷</text>
-
-                    <path class="country-node" id="country-UK" d="M 460 85 L 485 85 L 485 105 L 460 105 Z" onclick="playCountryRadio('UK')" data-name="Reino Unido" />
-                    <text x="462" y="98" fill="#ffffff" font-size="7" font-family="monospace" pointer-events="none">UK 🇬🇧</text>
-
-                    <!-- Asia -->
-                    <path class="country-node" id="country-JP" d="M 820 140 L 860 130 L 850 180 L 820 170 Z" onclick="playCountryRadio('JP')" data-name="Japón" />
-                    <text x="825" y="158" fill="#ffffff" font-size="9" font-family="monospace" pointer-events="none">Japón 🇯🇵</text>
-
-                    <path class="country-node" id="country-KR" d="M 775 145 L 805 145 L 805 170 L 775 170 Z" onclick="playCountryRadio('KR')" data-name="Corea del Sur" />
-                    <text x="777" y="160" fill="#ffffff" font-size="7" font-family="monospace" pointer-events="none">Corea 🇰🇷</text>
-
-                    <!-- Oceanía -->
-                    <path class="country-node" id="country-AU" d="M 780 320 L 880 320 L 860 410 L 760 390 Z" onclick="playCountryRadio('AU')" data-name="Australia" />
-                    <text x="800" y="365" fill="#ffffff" font-size="10" font-family="monospace" pointer-events="none">Australia 🇦🇺</text>
-                </svg>
+        <div class="relative glass rounded-2xl sm:rounded-3xl p-2 sm:p-3 overflow-hidden">
+            <div id="map"></div>
+            <div class="absolute top-4 right-4 z-[1000]">
+                <button onclick="resetMapView()" class="w-9 h-9 rounded-xl bg-white/90 border border-black/5 shadow-soft flex items-center justify-center text-[#4A4643] hover:bg-white" title="Vista mundial">
+                    <i class="fa-solid fa-earth-americas text-sm"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Tarjetas Rápidas de Estaciones de Radio -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3" id="radio-cards-container">
-            <!-- Inyectado dinámicamente -->
+        <!-- Panel de estados -->
+        <div id="states-panel" class="hidden space-y-4">
+            <div class="flex items-center justify-between flex-wrap gap-3">
+                <h3 id="states-title" class="text-lg font-semibold text-[#2C2A28]">Estados / Provincias</h3>
+                <button onclick="closeStatesPanel()" class="text-sm text-[#6B6560] hover:text-[#2C2A28] flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-left text-xs"></i> Volver
+                </button>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" id="states-grid"></div>
         </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" id="radio-cards-container"></div>
     </section>
 
     <!-- VIEW 3: DASHBOARD -->
-    <section id="view-dashboard" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
+    <section id="view-dashboard" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 flex-grow w-full">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
-                <h1 class="font-heading font-extrabold text-2xl sm:text-3xl text-white">Dashboard & Analíticas API</h1>
-                <p class="text-xs font-mono text-zinc-400 mt-1">Monitoreo en tiempo real del servidor y peticiones.</p>
+                <h1 class="text-2xl sm:text-3xl font-semibold text-[#2C2A28]">Dashboard</h1>
+                <p class="text-sm text-[#6B6560] mt-0.5">Monitoreo en tiempo real</p>
             </div>
-            
-            <div class="flex items-center space-x-3">
-                <div class="glass-card px-3.5 py-2 rounded-xl flex items-center space-x-2 text-xs font-mono">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span class="text-zinc-300">Estado: <strong class="text-white" id="db-health-status">Cargando...</strong></span>
+            <div class="flex items-center gap-2">
+                <div class="glass-card px-3 py-2 rounded-xl flex items-center gap-2 text-xs">
+                    <span class="w-2 h-2 rounded-full bg-pastel-mint"></span>
+                    <span class="text-[#6B6560]">Estado: <strong class="text-[#2C2A28]" id="db-health-status">Cargando...</strong></span>
                 </div>
-                <button onclick="refreshDashboardMetrics()" aria-label="Actualizar métricas" class="glass-button p-2.5 rounded-xl text-xs text-zinc-300 hover:text-white">
-                    <i class="fa-solid fa-rotate-right"></i>
+                <button onclick="refreshDashboardMetrics()" class="w-9 h-9 rounded-xl bg-white/60 border border-white/70 flex items-center justify-center text-[#6B6560]">
+                    <i class="fa-solid fa-rotate-right text-sm"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Key Block Exclusivo de Usuario Real -->
-        <div class="my-6 glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10">
+        <div class="relative glass rounded-2xl p-4 sm:p-5 mb-6">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div class="space-y-2 w-full lg:w-auto">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold">Tu Clave API Personal Registrada</span>
-                        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-mono px-2 py-0.5 rounded-full">Activa</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-medium text-[#6B6560] uppercase tracking-wide">Tu API Key</span>
+                        <span class="bg-pastel-mint/40 text-[#3A5C4A] text-[10px] font-medium px-2 py-0.5 rounded-full">Activa</span>
                     </div>
-                    <div class="flex items-center space-x-2 bg-black/80 p-2.5 rounded-xl border border-white/10 w-full sm:max-w-md">
-                        <i class="fa-solid fa-key text-zinc-500 text-xs pl-1"></i>
-                        <input type="password" id="user-api-key-input" readonly value="Inicia sesión para ver tu Key" class="bg-transparent font-mono text-xs text-zinc-200 focus:outline-none w-full min-w-0">
-                        <button onclick="toggleKeyVisibility()" aria-label="Mostrar u ocultar clave API" class="text-xs text-zinc-400 hover:text-white px-1.5"><i class="fa-regular fa-eye" id="eye-icon"></i></button>
-                        <button onclick="copyUserApiKey()" class="bg-white/10 hover:bg-white text-white hover:text-black px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition shrink-0">Copiar</button>
+                    <div class="flex items-center gap-2 bg-white/60 p-2 rounded-xl border border-black/5 w-full sm:max-w-md">
+                        <i class="fa-solid fa-key text-[#9B9590] text-xs pl-1"></i>
+                        <input type="password" id="user-api-key-input" readonly value="Inicia sesión para ver tu Key" class="bg-transparent font-mono text-xs text-[#2C2A28] focus:outline-none w-full min-w-0">
+                        <button onclick="toggleKeyVisibility()" class="text-[#9B9590] hover:text-[#2C2A28] px-1.5"><i class="fa-regular fa-eye text-xs" id="eye-icon"></i></button>
+                        <button onclick="copyUserApiKey()" class="bg-pastel-pink/50 hover:bg-pastel-pink text-[#5C3A42] px-2.5 py-1 rounded-lg text-xs font-medium">Copiar</button>
                     </div>
                 </div>
-
-                <div class="flex flex-wrap items-center gap-3 pt-2 lg:pt-0">
-                    <div class="font-mono text-xs text-zinc-400">
-                        <p>Límite Streams: <strong class="text-white" id="stream-limit-display">8 Simultáneos</strong></p>
-                        <p>Plan Actual: <strong class="text-emerald-400">Enterprise Unlimited Multi-Key</strong></p>
-                    </div>
+                <div class="text-xs text-[#6B6560] space-y-0.5">
+                    <p>Límite streams: <strong class="text-[#2C2A28]" id="stream-limit-display">8 simultáneos</strong></p>
+                    <p>Plan: <strong class="text-[#3A5C4A]">Enterprise Unlimited</strong></p>
                 </div>
             </div>
         </div>
 
-        <!-- Metric Cards REALES de Supabase -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <div class="glass-card p-4 rounded-2xl space-y-1">
-                <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
-                    <span class="truncate">Total Canciones BD</span>
-                    <i class="fa-solid fa-database text-zinc-500 text-xs"></i>
-                </div>
-                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-total-songs">0</div>
-                <div class="text-[10px] font-mono text-emerald-400 truncate">Sincronización en vivo</div>
+            <div class="glass-card p-4 rounded-2xl">
+                <div class="flex items-center justify-between text-[#6B6560] text-xs mb-1"><span>Canciones</span><i class="fa-solid fa-database text-[10px]"></i></div>
+                <div class="text-xl sm:text-2xl font-semibold text-[#2C2A28]" id="stat-total-songs">0</div>
+                <div class="text-[10px] text-[#3A5C4A] mt-0.5">Sincronización en vivo</div>
             </div>
-
-            <div class="glass-card p-4 rounded-2xl space-y-1">
-                <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
-                    <span class="truncate">Peticiones API Reales</span>
-                    <i class="fa-solid fa-chart-simple text-zinc-500 text-xs"></i>
-                </div>
-                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-total-requests">0</div>
-                <div class="text-[10px] font-mono text-emerald-400 truncate">Peticiones acumuladas</div>
+            <div class="glass-card p-4 rounded-2xl">
+                <div class="flex items-center justify-between text-[#6B6560] text-xs mb-1"><span>Peticiones API</span><i class="fa-solid fa-chart-simple text-[10px]"></i></div>
+                <div class="text-xl sm:text-2xl font-semibold text-[#2C2A28]" id="stat-total-requests">0</div>
+                <div class="text-[10px] text-[#3A5C4A] mt-0.5">Acumuladas</div>
             </div>
-
-            <div class="glass-card p-4 rounded-2xl space-y-1">
-                <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
-                    <span class="truncate">Streams Activos</span>
-                    <i class="fa-solid fa-tower-cell text-emerald-400 text-xs"></i>
-                </div>
-                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-active-streams">0 / 8</div>
-                <div class="text-[10px] font-mono text-zinc-400 truncate">Transcodificación FFmpeg</div>
+            <div class="glass-card p-4 rounded-2xl">
+                <div class="flex items-center justify-between text-[#6B6560] text-xs mb-1"><span>Streams activos</span><i class="fa-solid fa-tower-cell text-[10px] text-[#3A5C4A]"></i></div>
+                <div class="text-xl sm:text-2xl font-semibold text-[#2C2A28]" id="stat-active-streams">0 / 8</div>
+                <div class="text-[10px] text-[#6B6560] mt-0.5">FFmpeg</div>
             </div>
-
-            <div class="glass-card p-4 rounded-2xl space-y-1">
-                <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
-                    <span class="truncate">Uptime Servidor</span>
-                    <i class="fa-solid fa-bolt text-yellow-400 text-xs"></i>
-                </div>
-                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white truncate" id="stat-uptime">0s</div>
-                <div class="text-[10px] font-mono text-emerald-400 truncate">Servidor Render</div>
+            <div class="glass-card p-4 rounded-2xl">
+                <div class="flex items-center justify-between text-[#6B6560] text-xs mb-1"><span>Uptime</span><i class="fa-solid fa-bolt text-[10px] text-[#8B5E4A]"></i></div>
+                <div class="text-xl sm:text-2xl font-semibold text-[#2C2A28] truncate" id="stat-uptime">0s</div>
+                <div class="text-[10px] text-[#3A5C4A] mt-0.5">Servidor</div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div class="lg:col-span-2 glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10 space-y-4">
-                <div>
-                    <h3 class="font-heading font-bold text-base text-white">Volumen de Peticiones API (Multi-Endpoint)</h3>
-                    <p class="text-xs font-mono text-zinc-400">Tráfico global monitorizado</p>
-                </div>
-                <div class="h-48 sm:h-64 w-full">
-                    <canvas id="requestsChart"></canvas>
-                </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div class="lg:col-span-2 relative glass rounded-2xl p-4 sm:p-5">
+                <h3 class="text-sm font-semibold text-[#2C2A28] mb-0.5">Volumen de peticiones</h3>
+                <p class="text-xs text-[#6B6560] mb-4">Últimas semanas</p>
+                <div class="h-48 sm:h-56 w-full"><canvas id="requestsChart"></canvas></div>
             </div>
-
-            <div class="glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10 space-y-4">
-                <div>
-                    <h3 class="font-heading font-bold text-base text-white">Distribución por Versión de API</h3>
-                    <p class="text-xs font-mono text-zinc-400">Uso por clientes (v1 a v5)</p>
-                </div>
-                <div class="h-48 sm:h-64 w-full flex items-center justify-center">
-                    <canvas id="clientsChart"></canvas>
-                </div>
+            <div class="relative glass rounded-2xl p-4 sm:p-5">
+                <h3 class="text-sm font-semibold text-[#2C2A28] mb-0.5">Distribución por versión</h3>
+                <p class="text-xs text-[#6B6560] mb-4">Uso de APIs</p>
+                <div class="h-48 sm:h-56 w-full flex items-center justify-center"><canvas id="clientsChart"></canvas></div>
             </div>
         </div>
     </section>
 
-    <!-- VIEW 4: MUSIC CATALOG -->
-    <section id="view-catalog" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full space-y-6">
-        <div class="flex flex-col md:flex-row items-center justify-between gap-3">
-            <div class="relative w-full md:w-1/2">
-                <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-zinc-500 text-xs"></i>
-                <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Buscar canción, artista o género..." class="w-full glass-input pl-10 pr-4 py-2.5 rounded-xl text-xs font-mono">
+    <!-- VIEW 4: CATALOG -->
+    <section id="view-catalog" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 flex-grow w-full space-y-5">
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9B9590] text-sm"></i>
+                <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Buscar canción, artista o género..." class="w-full input-glass pl-10 pr-4 py-2.5 rounded-xl text-sm">
             </div>
-
-            <div class="flex items-center space-x-2 w-full md:w-auto overflow-x-auto pb-2 scrollbar-none" id="genre-filters">
-                <button onclick="setGenreFilter('')" class="genre-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-black whitespace-nowrap shadow">
-                    Todos
-                </button>
+            <div class="flex items-center gap-2 overflow-x-auto pb-1" id="genre-filters">
+                <button onclick="setGenreFilter('')" class="genre-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-[#2C2A28] text-white whitespace-nowrap shrink-0">Todos</button>
             </div>
         </div>
-
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4" id="catalog-grid">
-            <!-- Renderizado dinámico -->
-        </div>
-
-        <div class="pt-4 border-t border-white/10">
-            <button onclick="toggleAdminPanel()" class="glass-button px-4 py-2 rounded-xl text-xs font-mono text-zinc-300 hover:text-white flex items-center space-x-2">
-                <i class="fa-solid fa-plus text-xs"></i>
-                <span>Añadir Canción Manual con tu API Key</span>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4" id="catalog-grid"></div>
+        <div class="pt-2">
+            <button onclick="toggleAdminPanel()" class="btn-secondary px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2">
+                <i class="fa-solid fa-plus text-[10px]"></i> Añadir canción con tu API Key
             </button>
         </div>
-
-        <div id="admin-panel" class="hidden glass-panel p-4 sm:p-6 rounded-2xl border border-amber-500/30 space-y-4">
-            <h3 class="text-xs font-bold text-amber-400 font-mono uppercase tracking-wider">Inyectar Canción en Supabase con tu Clave API</h3>
+        <div id="admin-panel" class="hidden relative glass rounded-2xl p-4 sm:p-5 space-y-4 border border-pastel-coral/30">
+            <h3 class="text-xs font-semibold text-[#8B5E4A] uppercase tracking-wide">Inyectar canción</h3>
             <form id="upload-form" onsubmit="addCustomSong(event)" class="space-y-3">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <input type="text" id="song-title" required placeholder="Título de la pista" class="glass-input p-2.5 rounded-xl text-xs">
-                    <input type="text" id="song-artist" required placeholder="Artista" class="glass-input p-2.5 rounded-xl text-xs">
+                    <input type="text" id="song-title" required placeholder="Título" class="input-glass p-2.5 rounded-xl text-sm">
+                    <input type="text" id="song-artist" required placeholder="Artista" class="input-glass p-2.5 rounded-xl text-sm">
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <input type="text" id="song-genre" placeholder="Género" class="glass-input p-2.5 rounded-xl text-xs">
-                    <input type="number" id="song-duration" value="180" placeholder="Duración (seg)" class="glass-input p-2.5 rounded-xl text-xs">
-                    <input type="url" id="song-audio-url" required placeholder="URL SoundCloud / YouTube" class="glass-input p-2.5 rounded-xl text-xs">
+                    <input type="text" id="song-genre" placeholder="Género" class="input-glass p-2.5 rounded-xl text-sm">
+                    <input type="number" id="song-duration" value="180" placeholder="Duración (s)" class="input-glass p-2.5 rounded-xl text-sm">
+                    <input type="url" id="song-audio-url" required placeholder="URL audio" class="input-glass p-2.5 rounded-xl text-sm">
                 </div>
-                <input type="url" id="song-cover-url" placeholder="URL Carátula HD" class="w-full glass-input p-2.5 rounded-xl text-xs">
-                <textarea id="song-lyrics" placeholder="Letra LRC..." class="w-full glass-input p-2.5 rounded-xl text-xs h-20"></textarea>
-                <button type="submit" class="w-full py-2.5 bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs rounded-xl transition shadow-lg">
-                    Guardar e Inyectar en Servidor API
-                </button>
+                <input type="url" id="song-cover-url" placeholder="URL carátula" class="w-full input-glass p-2.5 rounded-xl text-sm">
+                <textarea id="song-lyrics" placeholder="Letra LRC..." class="w-full input-glass p-2.5 rounded-xl text-sm h-20 resize-none"></textarea>
+                <button type="submit" class="w-full py-2.5 btn-primary rounded-xl text-sm">Guardar e inyectar</button>
             </form>
         </div>
     </section>
 
-    <!-- VIEW 5: API DOCUMENTATION (v1 a v5) -->
-    <section id="view-docs" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full space-y-6">
-        <div class="glass-panel p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/10 space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-4 gap-2">
-                <div>
-                    <h2 class="font-heading font-extrabold text-xl sm:text-2xl text-white">APIs Multiversión (v1, v2, v3, v4, v5)</h2>
-                    <p class="text-xs font-mono text-zinc-400 mt-1">Endpoints dinámicos de catálogo, transcodificación OGG, letras y analíticas.</p>
-                </div>
+    <!-- VIEW 5: DOCS -->
+    <section id="view-docs" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 flex-grow w-full">
+        <div class="relative glass rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-5">
+            <div>
+                <h2 class="text-xl sm:text-2xl font-semibold text-[#2C2A28]">APIs Multiversión</h2>
+                <p class="text-sm text-[#6B6560] mt-1">Endpoints de catálogo, streaming, letras y analíticas.</p>
             </div>
-
-            <!-- Endpoint Selector Tabs -->
-            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 font-mono text-xs">
-                <button onclick="setDocVersion('v1')" id="tab-v1" class="py-2 rounded-xl bg-white text-black font-bold text-center">API v1 Basic</button>
-                <button onclick="setDocVersion('v2')" id="tab-v2" class="py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center">API v2 HD/LRC</button>
-                <button onclick="setDocVersion('v3')" id="tab-v3" class="py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center">API v3 Audio Stream</button>
-                <button onclick="setDocVersion('v4')" id="tab-v4" class="py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center">API v4 Analytics</button>
-                <button onclick="setDocVersion('v5')" id="tab-v5" class="py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center">API v5 Batch</button>
+            <div class="flex flex-wrap gap-2 text-xs font-medium">
+                <button onclick="setDocVersion('v1')" id="tab-v1" class="px-3.5 py-2 rounded-xl bg-[#2C2A28] text-white">v1 Basic</button>
+                <button onclick="setDocVersion('v2')" id="tab-v2" class="px-3.5 py-2 rounded-xl bg-white/50 text-[#6B6560] hover:text-[#2C2A28]">v2 HD/LRC</button>
+                <button onclick="setDocVersion('v3')" id="tab-v3" class="px-3.5 py-2 rounded-xl bg-white/50 text-[#6B6560] hover:text-[#2C2A28]">v3 Stream</button>
+                <button onclick="setDocVersion('v4')" id="tab-v4" class="px-3.5 py-2 rounded-xl bg-white/50 text-[#6B6560] hover:text-[#2C2A28]">v4 Analytics</button>
+                <button onclick="setDocVersion('v5')" id="tab-v5" class="px-3.5 py-2 rounded-xl bg-white/50 text-[#6B6560] hover:text-[#2C2A28]">v5 Batch</button>
             </div>
-
-            <div class="space-y-3 pt-4 border-t border-white/10">
-                <div class="flex items-center bg-black/80 px-3 py-2.5 rounded-xl border border-white/10 flex-grow w-full min-w-0">
-                    <span class="text-xs font-mono text-emerald-400 font-bold mr-2 shrink-0" id="doc-method">GET</span>
-                    <code class="text-xs font-mono text-zinc-300 truncate" id="endpoint-url-display">/api/v1/catalog</code>
+            <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                <div class="flex items-center bg-white/60 px-3 py-2.5 rounded-xl border border-black/5 flex-1 min-w-0">
+                    <span class="text-xs font-mono font-semibold text-[#3A5C4A] mr-2 shrink-0" id="doc-method">GET</span>
+                    <code class="text-xs font-mono text-[#4A4643] truncate" id="endpoint-url-display">/api/v1/catalog</code>
                 </div>
-                <button onclick="executeSandboxFetch()" class="w-full sm:w-auto px-5 py-2.5 bg-white text-black hover:bg-zinc-200 font-bold text-xs rounded-xl font-mono transition flex items-center justify-center space-x-2 shrink-0">
-                    <i class="fa-solid fa-play"></i>
-                    <span>Probar Endpoint</span>
+                <button onclick="executeSandboxFetch()" class="btn-primary px-5 py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-2 shrink-0">
+                    <i class="fa-solid fa-play text-[10px]"></i> Probar
                 </button>
             </div>
-
-            <!-- Documentación detallada por código -->
-            <div class="space-y-4 pt-2">
-                <h3 class="text-xs font-mono text-zinc-400 uppercase tracking-wider font-bold">Ejemplo de Código de Integración</h3>
-                <div class="bg-black/80 p-4 rounded-xl border border-white/10">
-                    <pre id="doc-code-preview" class="text-xs font-mono text-zinc-300 overflow-x-auto">
-// API v1 Ejemplo
+            <div>
+                <h3 class="text-xs font-medium text-[#6B6560] uppercase tracking-wide mb-2">Ejemplo de integración</h3>
+                <div class="bg-white/50 p-4 rounded-xl border border-black/5">
+                    <pre id="doc-code-preview" class="text-xs font-mono text-[#4A4643] overflow-x-auto">// API v1 Ejemplo
 const response = await fetch('/api/v1/catalog', {
-    headers: { 'x-api-key': 'tu_api_key_unica' }
+  headers: { 'x-api-key': 'tu_api_key' }
 });
 const data = await response.json();</pre>
                 </div>
@@ -618,129 +492,260 @@ const data = await response.json();</pre>
         </div>
     </section>
 
-    <!-- AUTHENTICATION MODAL REAL -->
-    <div id="auth-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl hidden flex items-center justify-center p-4">
-        <div class="glass-panel max-w-sm w-full p-6 rounded-2xl relative border border-white/15 space-y-4 shadow-2xl">
-            <button onclick="closeAuthModal()" aria-label="Cerrar modal de autenticación" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
-
+    <!-- AUTH MODAL -->
+    <div id="auth-modal" class="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="relative glass-strong max-w-sm w-full p-6 rounded-2xl space-y-4 shadow-glass-lg">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-[#9B9590] hover:text-[#2C2A28]"><i class="fa-solid fa-xmark"></i></button>
             <div class="text-center space-y-1">
-                <div class="w-10 h-10 rounded-xl bg-white text-black font-heading font-black text-sm flex items-center justify-center mx-auto">
-                    SK
-                </div>
-                <h3 class="font-heading font-extrabold text-xl text-white" id="modal-title">Iniciar Sesión</h3>
-                <p class="text-[11px] text-zinc-400 font-mono" id="modal-subtitle">Accede a tu API Key e infraestructura.</p>
+                <div class="w-10 h-10 rounded-xl bg-[#2C2A28] text-white font-semibold text-sm flex items-center justify-center mx-auto">SK</div>
+                <h3 class="text-lg font-semibold text-[#2C2A28]" id="modal-title">Iniciar sesión</h3>
+                <p class="text-xs text-[#6B6560]" id="modal-subtitle">Accede a tu API Key e infraestructura</p>
             </div>
-
             <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-3">
                 <div>
-                    <label for="auth-email" class="text-[11px] font-mono text-zinc-300">Correo Electrónico:</label>
-                    <input type="email" id="auth-email" required placeholder="desarrollador@empresa.com" class="w-full glass-input p-2.5 rounded-xl text-xs mt-1">
+                    <label class="text-xs font-medium text-[#6B6560]">Correo electrónico</label>
+                    <input type="email" id="auth-email" required placeholder="tu@empresa.com" class="w-full input-glass p-2.5 rounded-xl text-sm mt-1">
                 </div>
                 <div>
-                    <label for="auth-password" class="text-[11px] font-mono text-zinc-300">Contraseña:</label>
-                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full glass-input p-2.5 rounded-xl text-xs mt-1">
+                    <label class="text-xs font-medium text-[#6B6560]">Contraseña</label>
+                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full input-glass p-2.5 rounded-xl text-sm mt-1">
                 </div>
-
-                <button type="submit" class="w-full py-2.5 bg-white text-black font-extrabold text-xs rounded-xl hover:bg-zinc-200 transition shadow-xl font-mono uppercase tracking-wider">
-                    <span id="modal-submit-btn">Entrar al Sistema</span>
-                </button>
+                <button type="submit" class="w-full py-2.5 btn-primary rounded-xl text-sm font-medium"><span id="modal-submit-btn">Entrar</span></button>
             </form>
-
-            <div class="text-center pt-1">
-                <button onclick="toggleAuthMode()" class="text-xs font-mono text-zinc-400 hover:text-white underline">
-                    <span id="modal-toggle-text">¿No tienes cuenta? Regístrate aquí</span>
+            <div class="text-center">
+                <button onclick="toggleAuthMode()" class="text-xs text-[#6B6560] hover:text-[#2C2A28] underline">
+                    <span id="modal-toggle-text">¿No tienes cuenta? Regístrate</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- PERSISTENT MUSIC PLAYER BAR -->
-    <div id="player-bar" class="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-white/10 px-4 py-2.5 transition-all transform translate-y-full">
+    <!-- PLAYER -->
+    <div id="player-bar" class="fixed bottom-0 left-0 right-0 z-40 glass-strong border-t border-white/50 px-3 sm:px-4 py-2.5 transform translate-y-full">
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
-            
-            <div class="flex items-center space-x-2.5 w-1/2 sm:w-1/3 min-w-0">
-                <img id="player-cover" src="https://via.placeholder.com/150" alt="Carátula de la pista en reproducción" class="w-10 h-10 object-cover rounded-lg bg-zinc-900 border border-white/10 shrink-0">
-                <div class="truncate">
-                    <h4 id="player-title" class="font-bold text-white text-xs truncate">Selecciona una pista</h4>
-                    <p id="player-artist" class="text-[10px] text-zinc-400 truncate">--</p>
+            <div class="flex items-center gap-2.5 w-1/2 sm:w-1/3 min-w-0">
+                <img id="player-cover" src="https://via.placeholder.com/80" alt="" class="w-10 h-10 object-cover rounded-lg bg-cream-200 border border-black/5 shrink-0">
+                <div class="truncate min-w-0">
+                    <h4 id="player-title" class="font-medium text-sm text-[#2C2A28] truncate">Selecciona una pista</h4>
+                    <p id="player-artist" class="text-xs text-[#6B6560] truncate">--</p>
                 </div>
             </div>
-
-            <div class="flex items-center justify-center space-x-2 sm:space-x-3 shrink-0">
-                <button onclick="togglePlay()" id="btn-play" aria-label="Reproducir o pausar" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition shadow-lg">
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                <button onclick="togglePlay()" id="btn-play" class="w-9 h-9 rounded-full bg-[#2C2A28] text-white flex items-center justify-center hover:scale-105 transition shadow-soft">
                     <i class="fa-solid fa-play text-xs ml-0.5"></i>
                 </button>
-                <button onclick="openLyricsModal()" class="text-[11px] text-zinc-300 hover:text-white px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 font-mono">
-                    Letra
-                </button>
+                <button onclick="openLyricsModal()" class="text-xs text-[#6B6560] hover:text-[#2C2A28] px-2.5 py-1.5 rounded-lg bg-white/50 border border-black/5 font-medium hidden sm:block">Letra</button>
             </div>
-
             <div class="hidden sm:flex items-center justify-end w-1/3">
-                <span id="player-source" class="text-[9px] font-mono px-2 py-0.5 rounded bg-white/10 text-zinc-300 border border-white/10 truncate">STREAMING OGG v2</span>
+                <span id="player-source" class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/50 text-[#6B6560] border border-black/5 truncate">STREAM</span>
             </div>
-
         </div>
     </div>
 
     <!-- LYRICS MODAL -->
-    <div id="lyrics-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl hidden flex items-center justify-center p-4">
-        <div class="glass-panel max-w-md w-full p-5 rounded-2xl relative space-y-3 border border-white/15">
-            <button onclick="closeLyricsModal()" aria-label="Cerrar modal de letras" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
-            <h3 class="font-heading font-extrabold text-base text-white">Letra Sincronizada (LRC)</h3>
-            <div id="lyrics-content" class="text-xs font-mono text-zinc-300 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed bg-black/60 p-3 rounded-xl border border-white/10"></div>
+    <div id="lyrics-modal" class="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="relative glass-strong max-w-md w-full p-5 rounded-2xl space-y-3 shadow-glass-lg">
+            <button onclick="closeLyricsModal()" class="absolute top-4 right-4 text-[#9B9590] hover:text-[#2C2A28]"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-base font-semibold text-[#2C2A28]">Letra sincronizada</h3>
+            <div id="lyrics-content" class="text-sm text-[#4A4643] max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed bg-white/40 p-3 rounded-xl border border-black/5"></div>
         </div>
     </div>
 
-    <!-- SCRIPT & FRONTEND LOGIC COMPLETA CON SEGURIDAD ANTI-INSPECCIÓN -->
     <script>
-        // ===============================================
-        // BASE DE DATOS DE RADIOS POR PAÍS (MUNDO 2)
-        // ===============================================
+        // ===================== DATOS COMPLETOS =====================
         const countryRadios = {
-            'US': { name: "EE.UU.", station: "SomaFM Groove Salad", flag: "🇺🇸", url: "https://ice2.somafm.com/groovesalad-128-mp3", cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300" },
-            'MX': { name: "México", station: "Alfa 91.3 FM Live", flag: "🇲🇽", url: "https://stream.zeno.fm/f3wvbb14238uv", cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300" },
-            'BR': { name: "Brasil", station: "Bossa Nova Brazil", flag: "🇧🇷", url: "https://stream.zeno.fm/2w3xbb14238uv", cover: "https://images.unsplash.com/photo-1483412033650-1015ddeb83d1?w=300" },
-            'AR': { name: "Argentina", station: "Radio Con Vos 89.9", flag: "🇦🇷", url: "https://stream.zeno.fm/4w3xbb14238uv", cover: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300" },
-            'ES': { name: "España", station: "Radio Nacional España", flag: "🇪🇸", url: "https://rtveradio-live.rtve.es/rne_r1_main.mp3", cover: "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300" },
-            'FR': { name: "Francia", station: "FIP Radio Paris", flag: "🇫🇷", url: "https://icecast.radiofrance.fr/fip-midfi.mp3", cover: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300" },
-            'UK': { name: "Reino Unido", station: "BBC Radio 1 Direct", flag: "🇬🇧", url: "https://stream.zeno.fm/8w3xbb14238uv", cover: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300" },
-            'JP': { name: "Japón", station: "Tokyo FM World Live", flag: "🇯🇵", url: "https://stream.zeno.fm/6w3xbb14238uv", cover: "https://images.unsplash.com/photo-1528164344705-47542687990d?w=300" },
-            'KR': { name: "Corea del Sur", station: "K-Pop Big B Radio", flag: "🇰🇷", url: "https://stream.zeno.fm/9w3xbb14238uv", cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300" },
-            'AU': { name: "Australia", station: "Triple J Sydney Live", flag: "🇦🇺", url: "https://stream.zeno.fm/1w3xbb14238uv", cover: "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300" }
+            'US': {
+                name: "Estados Unidos", flag: "🇺🇸",
+                station: "NPR News", url: "https://npr-ice.streamguys1.com/live.mp3",
+                cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300",
+                hasStates: true,
+                states: {
+                    'AL': { name: "Alabama", station: "WUAL 91.5 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WUALFM.mp3" },
+                    'AK': { name: "Alaska", station: "KSKA 91.1 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KSKAFM.mp3" },
+                    'AZ': { name: "Arizona", station: "KJZZ 91.5 FM", url: "https://kjzz.streamguys1.com/kjzz_mp3_128" },
+                    'AR': { name: "Arkansas", station: "KUAR 89.1 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KUARFM.mp3" },
+                    'CA': { name: "California", station: "KCRW 89.9 FM", url: "https://kcrw.streamguys1.com/kcrw_192k_mp3_on_air" },
+                    'CO': { name: "Colorado", station: "KUVO 89.3 FM", url: "https://kuvo.streamguys1.com/kuvo-mp3" },
+                    'CT': { name: "Connecticut", station: "WNPR 90.5 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WNPRFM.mp3" },
+                    'DE': { name: "Delaware", station: "WDDE 91.1 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WDDEFM.mp3" },
+                    'FL': { name: "Florida", station: "WLRN 91.3 FM", url: "https://wlrn.streamguys1.com/wlrn-high" },
+                    'GA': { name: "Georgia", station: "WABE 90.1 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WABEFM.mp3" },
+                    'HI': { name: "Hawaii", station: "HPR 88.1 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KHPRFM.mp3" },
+                    'ID': { name: "Idaho", station: "Boise State Public Radio", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KBSWFM.mp3" },
+                    'IL': { name: "Illinois", station: "WXRT 93.1 FM", url: "https://stream.radio.co/s3c3c3c3c3/listen" },
+                    'IN': { name: "Indiana", station: "WIPB 89.1 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WIPBFM.mp3" },
+                    'IA': { name: "Iowa", station: "Iowa Public Radio", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WOIFM.mp3" },
+                    'KS': { name: "Kansas", station: "KPR 91.5 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KANUFM.mp3" },
+                    'KY': { name: "Kentucky", station: "WFPL 89.3 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WFPLFM.mp3" },
+                    'LA': { name: "Louisiana", station: "WWNO 89.9 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WWNOFM.mp3" },
+                    'ME': { name: "Maine", station: "MPBN", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WMEHFM.mp3" },
+                    'MD': { name: "Maryland", station: "WYPR 88.1 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WYPRFM.mp3" },
+                    'MA': { name: "Massachusetts", station: "WBUR 90.9 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WBURFM.mp3" },
+                    'MI': { name: "Michigan", station: "Michigan Radio", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WUOMFM.mp3" },
+                    'MN': { name: "Minnesota", station: "MPR News", url: "https://nis.stream.publicradio.org/nis.mp3" },
+                    'MS': { name: "Mississippi", station: "MPB", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WMAA_FM.mp3" },
+                    'MO': { name: "Missouri", station: "KWMU 90.7 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KWMUFM.mp3" },
+                    'MT': { name: "Montana", station: "MTPR", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KUFM.mp3" },
+                    'NE': { name: "Nebraska", station: "NET Radio", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KUCVFM.mp3" },
+                    'NV': { name: "Nevada", station: "KUNR 88.7 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KUNRFM.mp3" },
+                    'NH': { name: "New Hampshire", station: "NHPR", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WEVO_FM.mp3" },
+                    'NJ': { name: "New Jersey", station: "NJPR", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WNJT_FM.mp3" },
+                    'NM': { name: "New Mexico", station: "KUNM 89.9 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KUNMFM.mp3" },
+                    'NY': { name: "Nueva York", station: "WNYC 93.9 FM", url: "https://fm939.wnyc.org/wnycfm" },
+                    'NC': { name: "North Carolina", station: "WUNC 91.5 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WUNCFM.mp3" },
+                    'ND': { name: "North Dakota", station: "Prairie Public", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KCNDFM.mp3" },
+                    'OH': { name: "Ohio", station: "WOSU 89.7 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WOSUFM.mp3" },
+                    'OK': { name: "Oklahoma", station: "KGOU 106.3 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KGOUFM.mp3" },
+                    'OR': { name: "Oregon", station: "OPB", url: "https://stream5.opb.org/opbmusic_aac_128k" },
+                    'PA': { name: "Pennsylvania", station: "WHYY 90.9 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WHYY_FM.mp3" },
+                    'RI': { name: "Rhode Island", station: "RI Public Radio", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WRNI_FM.mp3" },
+                    'SC': { name: "South Carolina", station: "SC Public Radio", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WRJA_FM.mp3" },
+                    'SD': { name: "South Dakota", station: "SDPBS", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KUSD_FM.mp3" },
+                    'TN': { name: "Tennessee", station: "WPLN 90.3 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WPLNFM.mp3" },
+                    'TX': { name: "Texas", station: "KUT 90.5 FM", url: "https://kut.streamguys1.com/high" },
+                    'UT': { name: "Utah", station: "KUER 90.1 FM", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KUERFM.mp3" },
+                    'VT': { name: "Vermont", station: "VPR", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WVPS_FM.mp3" },
+                    'VA': { name: "Virginia", station: "WTJU 91.1 FM", url: "https://streams.wtju.net/wtju-128.mp3" },
+                    'WA': { name: "Washington", station: "KEXP 90.3 FM", url: "https://kexp-mp3-128.streamguys1.com/kexp128.mp3" },
+                    'WV': { name: "West Virginia", station: "WV Public Broadcasting", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WVPB_FM.mp3" },
+                    'WI': { name: "Wisconsin", station: "WPR", url: "https://wpr-ice.streamguys1.com/wpr-music-mp3-96" },
+                    'WY': { name: "Wyoming", station: "Wyoming Public Radio", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/KUWRFM.mp3" }
+                }
+            },
+            'MX': {
+                name: "México", flag: "🇲🇽",
+                station: "Alfa 91.3 FM", url: "https://stream.zeno.fm/f3wvbb14238uv",
+                cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300",
+                hasStates: true,
+                states: {
+                    'CMX': { name: "Ciudad de México", station: "Reactor 105.7", url: "https://s1.voscast.com:10487/stream" },
+                    'JAL': { name: "Jalisco", station: "Radio UdeG", url: "https://stream.zeno.fm/0r0xa792kwzuv" },
+                    'NLE': { name: "Nuevo León", station: "Radio Nuevo León", url: "https://stream.zeno.fm/4w3xbb14238uv" },
+                    'YUC': { name: "Yucatán", station: "La Mejor Yucatán", url: "https://stream.zeno.fm/5w3xbb14238uv" },
+                    'QUE': { name: "Querétaro", station: "Radio Querétaro", url: "https://stream.zeno.fm/6w3xbb14238uv" },
+                    'PUE': { name: "Puebla", station: "BUAP Radio", url: "https://stream.zeno.fm/7w3xbb14238uv" },
+                    'GTO': { name: "Guanajuato", station: "Radio Universidad de Guanajuato", url: "https://stream.zeno.fm/8w3xbb14238uv" },
+                    'VER': { name: "Veracruz", station: "Radio UV", url: "https://stream.zeno.fm/9w3xbb14238uv" }
+                }
+            },
+            'CA': {
+                name: "Canadá", flag: "🇨🇦",
+                station: "CBC Radio One", url: "https://cbcradiolive.akamaized.net/hls/live/2040965/ES_R1TOR/master.m3u8",
+                cover: "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300",
+                hasStates: true,
+                states: {
+                    'ON': { name: "Ontario", station: "CBC Toronto", url: "https://cbcradiolive.akamaized.net/hls/live/2040965/ES_R1TOR/master.m3u8" },
+                    'QC': { name: "Quebec", station: "CBC Montreal", url: "https://cbcradiolive.akamaized.net/hls/live/2041057/ES_R1MTL/master.m3u8" },
+                    'BC': { name: "British Columbia", station: "CBC Vancouver", url: "https://cbcradiolive.akamaized.net/hls/live/2041037/ES_R1VCR/master.m3u8" },
+                    'AB': { name: "Alberta", station: "CBC Calgary", url: "https://cbcradiolive.akamaized.net/hls/live/2041027/ES_R1CGY/master.m3u8" },
+                    'MB': { name: "Manitoba", station: "CBC Winnipeg", url: "https://cbcradiolive.akamaized.net/hls/live/2041047/ES_R1WPG/master.m3u8" }
+                }
+            },
+            'ES': {
+                name: "España", flag: "🇪🇸",
+                station: "Radio Nacional de España", url: "https://rtveradio-live.rtve.es/rne_r1_main.mp3",
+                cover: "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300",
+                hasStates: true,
+                states: {
+                    'MD': { name: "Madrid", station: "RNE Madrid", url: "https://rtveradio-live.rtve.es/rne_r1_main.mp3" },
+                    'CT': { name: "Cataluña", station: "Catalunya Ràdio", url: "https://shoutcast.ccma.cat/ccma/catalunyaradioHD.mp3" },
+                    'AN': { name: "Andalucía", station: "Canal Sur Radio", url: "https://canalsurradio.rtva.andalucia.es/stream/canalsurradio.mp3" },
+                    'VC': { name: "Comunidad Valenciana", station: "À Punt Ràdio", url: "https://stream.apuntmedia.es/radio/apunt_radio.mp3" },
+                    'GA': { name: "Galicia", station: "Radio Galega", url: "https://crtvg.stream.flumotion.com/crtvg/rg.mp3.m3u" },
+                    'PV': { name: "País Vasco", station: "Euskadi Irratia", url: "https://mp3.eitb.eus/euskadiirratia/euskadiirratia.mp3" }
+                }
+            },
+            'BR': {
+                name: "Brasil", flag: "🇧🇷",
+                station: "CBN São Paulo", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/CBN_SP_SC",
+                cover: "https://images.unsplash.com/photo-1483412033650-1015ddeb83d1?w=300",
+                hasStates: true,
+                states: {
+                    'SP': { name: "São Paulo", station: "CBN São Paulo", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/CBN_SP_SC" },
+                    'RJ': { name: "Rio de Janeiro", station: "CBN Rio", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/CBN_RJ_SC" },
+                    'MG': { name: "Minas Gerais", station: "CBN BH", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/CBN_BH_SC" },
+                    'RS': { name: "Rio Grande do Sul", station: "Gaúcha", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/GAUCHA_SC" },
+                    'BA': { name: "Bahia", station: "CBN Salvador", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/CBN_SSA_SC" }
+                }
+            },
+            'AR': {
+                name: "Argentina", flag: "🇦🇷",
+                station: "Radio Con Vos", url: "https://stream.zeno.fm/4w3xbb14238uv",
+                cover: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300",
+                hasStates: true,
+                states: {
+                    'CABA': { name: "CABA", station: "Radio Con Vos", url: "https://stream.zeno.fm/4w3xbb14238uv" },
+                    'BA': { name: "Buenos Aires", station: "La 100", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/LA100_SC" },
+                    'CBA': { name: "Córdoba", station: "Cadena 3", url: "https://stream.zeno.fm/5w3xbb14238uv" },
+                    'SF': { name: "Santa Fe", station: "LT2", url: "https://stream.zeno.fm/6w3xbb14238uv" }
+                }
+            },
+            // Resto de países
+            'CL': { name: "Chile", flag: "🇨🇱", station: "Radio Cooperativa", url: "https://stream.zeno.fm/5w3xbb14238uv", cover: "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300" },
+            'CO': { name: "Colombia", flag: "🇨🇴", station: "Caracol Radio", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/CARACOL_RADIO_SC", cover: "https://images.unsplash.com/photo-1483412033650-1015ddeb83d1?w=300" },
+            'PE': { name: "Perú", flag: "🇵🇪", station: "RPP Noticias", url: "https://stream.zeno.fm/7w3xbb14238uv", cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300" },
+            'FR': { name: "Francia", flag: "🇫🇷", station: "FIP", url: "https://icecast.radiofrance.fr/fip-midfi.mp3", cover: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300" },
+            'UK': { name: "Reino Unido", flag: "🇬🇧", station: "BBC Radio 1", url: "https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one", cover: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300" },
+            'DE': { name: "Alemania", flag: "🇩🇪", station: "Deutschlandfunk", url: "https://st01.dlf.de/dlf/01/128/mp3/stream.mp3", cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300" },
+            'IT': { name: "Italia", flag: "🇮🇹", station: "Rai Radio 1", url: "https://icestreaming.rai.it/1.mp3", cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300" },
+            'JP': { name: "Japón", flag: "🇯🇵", station: "Tokyo FM", url: "https://stream.zeno.fm/6w3xbb14238uv", cover: "https://images.unsplash.com/photo-1528164344705-47542687990d?w=300" },
+            'KR': { name: "Corea del Sur", flag: "🇰🇷", station: "KBS Cool FM", url: "https://stream.zeno.fm/9w3xbb14238uv", cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300" },
+            'AU': { name: "Australia", flag: "🇦🇺", station: "Triple J", url: "https://stream.zeno.fm/1w3xbb14238uv", cover: "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300" },
+            'CN': { name: "China", flag: "🇨🇳", station: "China National Radio", url: "https://stream.zeno.fm/7w3xbb14238uv", cover: "https://images.unsplash.com/photo-1483412033650-1015ddeb83d1?w=300" },
+            'IN': { name: "India", flag: "🇮🇳", station: "All India Radio", url: "https://stream.zeno.fm/8w3xbb14238uv", cover: "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300" },
+            'ZA': { name: "Sudáfrica", flag: "🇿🇦", station: "SAfm", url: "https://stream.zeno.fm/3w3xbb14238uv", cover: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300" },
+            'NG': { name: "Nigeria", flag: "🇳🇬", station: "Wazobia FM", url: "https://stream.zeno.fm/9w3xbb14238uv", cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300" },
+            'EG': { name: "Egipto", flag: "🇪🇬", station: "Nile FM", url: "https://stream.zeno.fm/1w3xbb14238uv", cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300" },
+            'TR': { name: "Turquía", flag: "🇹🇷", station: "TRT FM", url: "https://stream.zeno.fm/2w3xbb14238uv", cover: "https://images.unsplash.com/photo-1528164344705-47542687990d?w=300" },
+            'RU': { name: "Rusia", flag: "🇷🇺", station: "Radio Mayak", url: "https://icecast-vgtrk.cdnvideo.ru/mayakfm_mp3_192kbps", cover: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300" },
+            'SE': { name: "Suecia", flag: "🇸🇪", station: "Sveriges Radio P1", url: "https://http-live.sr.se/p1-mp3-192", cover: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300" },
+            'NO': { name: "Noruega", flag: "🇳🇴", station: "NRK P1", url: "https://lyd.nrk.no/nrk_radio_p1_ostlandssendingen_mp3_h", cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300" },
+            'NL': { name: "Países Bajos", flag: "🇳🇱", station: "NPO Radio 1", url: "https://icecast.omroep.nl/radio1-bb-mp3", cover: "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300" },
+            'PT': { name: "Portugal", flag: "🇵🇹", station: "Antena 1", url: "https://radiocast.rtp.pt/antena1.mp3", cover: "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300" },
+            'PL': { name: "Polonia", flag: "🇵🇱", station: "Polskie Radio 1", url: "https://stream85.polskieradio.pl/pr1/pr1.sdp/playlist.m3u8", cover: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300" },
+            'CH': { name: "Suiza", flag: "🇨🇭", station: "SRF 1", url: "https://stream.srg-ssr.ch/m/drs1/mp3_128", cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300" },
+            'AT': { name: "Austria", flag: "🇦🇹", station: "Ö1", url: "https://orf-live.ors-shoutcast.at/oe1-q2a", cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300" },
+            'IE': { name: "Irlanda", flag: "🇮🇪", station: "RTÉ Radio 1", url: "https://www.rte.ie/radio1.m3u", cover: "https://images.unsplash.com/photo-1528164344705-47542687990d?w=300" },
+            'NZ': { name: "Nueva Zelanda", flag: "🇳🇿", station: "RNZ National", url: "https://radionz-ice.streamguys1.com/national.mp3", cover: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300" },
+            'SG': { name: "Singapur", flag: "🇸🇬", station: "CNA938", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/938_SC", cover: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300" },
+            'TH': { name: "Tailandia", flag: "🇹🇭", station: "Thai PBS", url: "https://stream.zeno.fm/4w3xbb14238uv", cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300" },
+            'ID': { name: "Indonesia", flag: "🇮🇩", station: "RRI", url: "https://stream.zeno.fm/5w3xbb14238uv", cover: "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300" },
+            'PH': { name: "Filipinas", flag: "🇵🇭", station: "DZBB", url: "https://stream.zeno.fm/6w3xbb14238uv", cover: "https://images.unsplash.com/photo-1483412033650-1015ddeb83d1?w=300" },
+            'MY': { name: "Malasia", flag: "🇲🇾", station: "TraXX FM", url: "https://stream.zeno.fm/7w3xbb14238uv", cover: "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300" },
+            'VN': { name: "Vietnam", flag: "🇻🇳", station: "VOV", url: "https://stream.zeno.fm/8w3xbb14238uv", cover: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300" },
+            'SA': { name: "Arabia Saudita", flag: "🇸🇦", station: "SBA", url: "https://stream.zeno.fm/9w3xbb14238uv", cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300" },
+            'AE': { name: "Emiratos Árabes", flag: "🇦🇪", station: "Dubai Eye 103.8", url: "https://stream.zeno.fm/1w3xbb14238uv", cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300" },
+            'IL': { name: "Israel", flag: "🇮🇱", station: "Galei Tzahal", url: "https://stream.zeno.fm/2w3xbb14238uv", cover: "https://images.unsplash.com/photo-1528164344705-47542687990d?w=300" },
+            'GR': { name: "Grecia", flag: "🇬🇷", station: "ERT First Programme", url: "https://radiostreaming.ert.gr/ert-proto", cover: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300" },
+            'CZ': { name: "Chequia", flag: "🇨🇿", station: "ČRo Radiožurnál", url: "https://rozhlas.stream/radiozurnal.mp3", cover: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300" },
+            'HU': { name: "Hungría", flag: "🇭🇺", station: "Kossuth Rádió", url: "https://stream001.radio.hu:443/mr1.mp3", cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300" },
+            'RO': { name: "Rumanía", flag: "🇷🇴", station: "Radio România Actualități", url: "https://stream2.srr.ro:8443/romania-actualitati", cover: "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300" },
+            'UA': { name: "Ucrania", flag: "🇺🇦", station: "Ukrainian Radio", url: "https://radio.ukr.radio/ur1-mp3", cover: "https://images.unsplash.com/photo-1483412033650-1015ddeb83d1?w=300" },
+            'FI': { name: "Finlandia", flag: "🇫🇮", station: "Yle Radio 1", url: "https://yleradio1.akamaized.net/hls/live/2027675/in-YleR1H/master.m3u8", cover: "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300" },
+            'DK': { name: "Dinamarca", flag: "🇩🇰", station: "DR P1", url: "https://live-icy.dr.dk/A/A03H.mp3", cover: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300" }
         };
 
-        // ===============================================
-        // PROTECCIÓN ANTI-INSPECCIÓN Y BLOQUEO DE CÓDIGO
-        // ===============================================
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-        });
+        const countryCoords = {
+            'US': [39.8, -98.5], 'MX': [23.6, -102.5], 'CA': [56.1, -106.3],
+            'BR': [-14.2, -51.9], 'AR': [-38.4, -63.6], 'CL': [-35.7, -71.5],
+            'CO': [4.6, -74.3], 'PE': [-9.2, -75.0],
+            'ES': [40.4, -3.7], 'FR': [46.2, 2.2], 'UK': [55.4, -3.4],
+            'DE': [51.2, 10.4], 'IT': [41.9, 12.6], 'PT': [39.4, -8.2],
+            'NL': [52.1, 5.3], 'BE': [50.5, 4.5], 'CH': [46.8, 8.2],
+            'AT': [47.5, 14.6], 'SE': [60.1, 18.6], 'NO': [60.5, 8.5],
+            'DK': [56.3, 9.5], 'FI': [61.9, 25.7], 'PL': [51.9, 19.1],
+            'CZ': [49.8, 15.5], 'HU': [47.2, 19.5], 'RO': [45.9, 24.9],
+            'GR': [39.1, 21.8], 'IE': [53.1, -7.7], 'UA': [48.4, 31.2],
+            'RU': [61.5, 105.3], 'JP': [36.2, 138.3], 'KR': [35.9, 127.8],
+            'CN': [35.9, 104.2], 'IN': [20.6, 78.9], 'ID': [-0.8, 113.9],
+            'TH': [15.9, 100.9], 'VN': [14.1, 108.3], 'PH': [12.9, 121.8],
+            'MY': [4.2, 101.9], 'SG': [1.4, 103.8], 'TR': [38.9, 35.2],
+            'SA': [23.9, 45.1], 'AE': [23.4, 53.8], 'IL': [31.0, 34.8],
+            'ZA': [-30.6, 22.9], 'NG': [9.1, 8.7], 'EG': [26.8, 30.8],
+            'AU': [-25.3, 133.8], 'NZ': [-40.9, 174.9]
+        };
 
-        document.addEventListener('keydown', function(e) {
-            if (e.keyCode === 123 || 
-               (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) ||
-               (e.ctrlKey && e.keyCode === 85)) {
-                e.preventDefault();
-                return false;
-            }
-        });
-
-        setInterval(function() {
-            const start = performance.now();
-            (function() {}.constructor("debugger")());
-            const end = performance.now();
-            if (end - start > 100) {
-                document.body.innerHTML = '<div style="color:white;text-align:center;padding:50px;font-family:sans-serif;"><h1>Acceso Denegado</h1><p>Inspección de código detectada e interceptada por seguridad.</p></div>';
-            }
-        }, 1000);
-
-        // ===============================================
-        // LÓGICA DE APLICACIÓN FRONTEND
-        // ===============================================
+        // ===================== LÓGICA =====================
         let currentAuthMode = 'login';
         let currentUser = JSON.parse(localStorage.getItem('sekai_real_user')) || null;
         let globalCatalog = [];
@@ -751,39 +756,188 @@ const data = await response.json();</pre>
         let clientsChart = null;
         let searchTimeout = null;
         let activeDocVersion = 'v1';
+        let map = null;
+        let markersLayer = null;
 
         const audioElement = document.getElementById('main-audio-player');
         const defaultGenres = ["Eve", "Trío Los Panchos", "Post-Punk", "City Pop", "Boleros", "Indie Rock", "Lofi Beats", "Anime OST", "J-Pop", "Vocaloid"];
 
-        audioElement.addEventListener('ended', () => {
-            isPlaying = false;
-            updatePlayButton();
-        });
+        audioElement.addEventListener('ended', () => { isPlaying = false; updatePlayButton(); });
 
         function toggleMobileMenu() {
             document.getElementById('mobile-menu').classList.toggle('hidden');
         }
 
+        function initMap() {
+            if (map) return;
+            map = L.map('map', {
+                center: [20, 0],
+                zoom: 2,
+                minZoom: 2,
+                maxZoom: 8,
+                zoomControl: true,
+                attributionControl: false
+            });
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19
+            }).addTo(map);
+
+            markersLayer = L.layerGroup().addTo(map);
+
+            Object.keys(countryRadios).forEach(code => {
+                const coords = countryCoords[code];
+                if (!coords) return;
+                const r = countryRadios[code];
+                const marker = L.circleMarker(coords, {
+                    radius: 9,
+                    fillColor: '#C8E0D5',
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.85
+                });
+                marker.bindTooltip(`${r.flag} ${r.name}`, {
+                    className: 'country-tooltip',
+                    direction: 'top',
+                    offset: [0, -8]
+                });
+                marker.on('click', () => handleCountryClick(code));
+                markersLayer.addLayer(marker);
+            });
+        }
+
+        function resetMapView() {
+            if (map) map.setView([20, 0], 2, { animate: true, duration: 1.2 });
+            closeStatesPanel();
+            document.getElementById('active-country-label').innerText = 'Selecciona un país o estado';
+            renderRadioCards();
+        }
+
+        function handleCountryClick(code) {
+            const country = countryRadios[code];
+            if (!country) return;
+
+            const coords = countryCoords[code];
+            if (coords && map) {
+                map.flyTo(coords, 5, { duration: 1.1 });
+            }
+
+            if (country.hasStates) {
+                showStatesPanel(code);
+            } else {
+                playCountryRadio(code);
+                renderCountryCards(code);
+            }
+        }
+
+        function showStatesPanel(code) {
+            const country = countryRadios[code];
+            document.getElementById('states-panel').classList.remove('hidden');
+            document.getElementById('states-title').innerText = `${country.flag} ${country.name} · Estados / Provincias`;
+            document.getElementById('radio-cards-container').innerHTML = '';
+
+            const grid = document.getElementById('states-grid');
+            grid.innerHTML = Object.entries(country.states).map(([stCode, st]) => `
+                <div onclick="playStateRadio('\( {code}', ' \){stCode}')" class="glass-card p-3 rounded-2xl cursor-pointer hover:scale-[1.02] transition">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <span class="text-base">${country.flag}</span>
+                        <span class="text-[11px] font-medium text-[#6B6560]">${stCode}</span>
+                    </div>
+                    <h4 class="font-medium text-sm text-[#2C2A28] line-clamp-1">${st.name}</h4>
+                    <p class="text-[11px] text-[#3A5C4A] mt-0.5 line-clamp-1">${st.station}</p>
+                </div>
+            `).join('');
+
+            document.getElementById('active-country-label').innerText = `${country.flag} ${country.name} · elige un estado`;
+        }
+
+        function closeStatesPanel() {
+            document.getElementById('states-panel').classList.add('hidden');
+            document.getElementById('states-grid').innerHTML = '';
+        }
+
+        function playStateRadio(countryCode, stateCode) {
+            const country = countryRadios[countryCode];
+            const state = country.states[stateCode];
+            if (!state) return;
+
+            document.getElementById('active-country-label').innerText = `${country.flag} ${state.name} · ${state.station}`;
+
+            playTrack({
+                title: state.station,
+                artist: `Radio en vivo · ${state.name}, ${country.name}`,
+                cover_url: country.cover || 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300',
+                source: `RADIO ${stateCode}`,
+                stream_url: state.url,
+                lyrics: `Transmisión en vivo desde ${state.name}. Letras no disponibles.`
+            });
+        }
+
+        function playCountryRadio(code) {
+            const radio = countryRadios[code];
+            if (!radio) return;
+            document.getElementById('active-country-label').innerText = `${radio.flag} ${radio.name} · ${radio.station}`;
+            playTrack({
+                title: radio.station,
+                artist: `Radio en vivo · ${radio.name}`,
+                cover_url: radio.cover,
+                source: `RADIO ${code}`,
+                stream_url: radio.url,
+                lyrics: "Transmisión en vivo. Letras no disponibles."
+            });
+        }
+
+        function renderCountryCards(code) {
+            const radio = countryRadios[code];
+            const container = document.getElementById('radio-cards-container');
+            if (!container || !radio) return;
+            container.innerHTML = `
+                <div onclick="playCountryRadio('${code}')" class="glass-card p-3 rounded-2xl cursor-pointer group">
+                    <div class="relative aspect-video rounded-xl bg-cream-200 overflow-hidden mb-2">
+                        <img src="\( {radio.cover}" alt=" \){radio.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <div class="absolute top-2 left-2 bg-white/80 px-1.5 py-0.5 rounded text-xs">${radio.flag}</div>
+                    </div>
+                    <h4 class="font-medium text-sm text-[#2C2A28] line-clamp-1">${radio.station}</h4>
+                    <p class="text-[11px] text-[#3A5C4A] mt-0.5">En vivo · ${radio.name}</p>
+                </div>
+            `;
+        }
+
+        function renderRadioCards() {
+            const container = document.getElementById('radio-cards-container');
+            if (!container) return;
+            const featured = ['US','MX','ES','FR','JP','BR','AR','UK','DE','AU','CA','IT','KR','CN','IN'];
+            container.innerHTML = featured.filter(c => countryRadios[c]).map(code => {
+                const r = countryRadios[code];
+                return `
+                    <div onclick="handleCountryClick('${code}')" class="glass-card p-3 rounded-2xl cursor-pointer group">
+                        <div class="relative aspect-video rounded-xl bg-cream-200 overflow-hidden mb-2">
+                            <img src="\( {r.cover}" alt=" \){r.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            <div class="absolute top-2 left-2 bg-white/80 px-1.5 py-0.5 rounded text-xs">${r.flag}</div>
+                        </div>
+                        <h4 class="font-medium text-sm text-[#2C2A28] line-clamp-1">${r.station}</h4>
+                        <p class="text-[11px] text-[#3A5C4A] mt-0.5">En vivo · ${r.name}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ===== Resto de funciones (auth, catalog, dashboard, etc.) =====
         async function checkSystemStatus() {
             try {
                 const res = await fetch('/api/system/status');
                 const data = await res.json();
-                
                 const mScreen = document.getElementById('maintenance-screen');
                 if (data.maintenance) {
                     mScreen.classList.remove('hidden');
                     document.getElementById('maintenance-message-text').innerText = data.maintenanceMessage;
-                } else {
-                    mScreen.classList.add('hidden');
-                }
-
+                } else mScreen.classList.add('hidden');
                 const annBar = document.getElementById('global-announcement-bar');
                 if (data.announcement) {
                     annBar.classList.remove('hidden');
                     document.getElementById('global-announcement-text').innerText = data.announcement;
-                } else {
-                    annBar.classList.add('hidden');
-                }
+                } else annBar.classList.add('hidden');
             } catch (_) {}
         }
 
@@ -794,13 +948,10 @@ const data = await response.json();</pre>
                 if (data.status === 'success') {
                     globalCatalog = data.catalog || [];
                     renderSongs(globalCatalog);
-                    
                     const statTotal = document.getElementById('stat-total-songs');
                     if (statTotal) statTotal.innerText = data.total || globalCatalog.length;
                 }
-            } catch (e) {
-                console.error('Error cargando catálogo:', e);
-            }
+            } catch (e) { console.error(e); }
         }
 
         async function fetchHealth() {
@@ -810,15 +961,10 @@ const data = await response.json();</pre>
                 if (data.status === 'ok') {
                     document.getElementById('db-health-status').innerText = `Operacional (${data.db})`;
                     document.getElementById('stat-active-streams').innerText = `${data.streams} / ${data.max_streams}`;
-                    document.getElementById('stream-limit-display').innerText = `${data.max_streams} Simultáneos`;
+                    document.getElementById('stream-limit-display').innerText = `${data.max_streams} simultáneos`;
                     document.getElementById('stat-uptime').innerText = `${data.uptime_sec}s`;
-                    
-                    if (data.total_songs) {
-                        document.getElementById('stat-total-songs').innerText = data.total_songs;
-                    }
-                    if (data.total_api_requests !== undefined) {
-                        document.getElementById('stat-total-requests').innerText = data.total_api_requests;
-                    }
+                    if (data.total_songs) document.getElementById('stat-total-songs').innerText = data.total_songs;
+                    if (data.total_api_requests !== undefined) document.getElementById('stat-total-requests').innerText = data.total_api_requests;
                 }
             } catch (_) {}
         }
@@ -830,129 +976,61 @@ const data = await response.json();</pre>
             ['landing', 'catalog', 'worldmap', 'docs', 'dashboard'].forEach(nav => {
                 const btn = document.getElementById(`nav-${nav}`);
                 if (btn) {
-                    btn.className = (nav === viewId) 
-                        ? 'px-4 py-2 rounded-full text-white bg-white/10 font-bold transition'
-                        : 'px-4 py-2 rounded-full text-zinc-400 hover:text-white transition';
+                    btn.className = (nav === viewId)
+                        ? 'px-3.5 py-1.5 rounded-full text-[#2C2A28] bg-white/80 shadow-sm transition'
+                        : 'px-3.5 py-1.5 rounded-full text-[#6B6560] hover:text-[#2C2A28] transition';
                 }
             });
 
-            if (viewId === 'dashboard') {
-                initDashboardCharts();
-                fetchHealth();
-            } else if (viewId === 'worldmap') {
-                renderRadioCards();
+            if (viewId === 'dashboard') { initDashboardCharts(); fetchHealth(); }
+            else if (viewId === 'worldmap') {
+                setTimeout(() => {
+                    initMap();
+                    map.invalidateSize();
+                    renderRadioCards();
+                }, 150);
             }
-        }
-
-        // FUNCIÓN DEL MAPA 2: REPRODUCCIÓN DE RADIO EN VIVO
-        function playCountryRadio(code) {
-            const radio = countryRadios[code];
-            if (!radio) return;
-
-            document.querySelectorAll('.country-node').forEach(el => el.classList.remove('active-radio'));
-            const activeNode = document.getElementById(`country-${code}`);
-            if (activeNode) activeNode.classList.add('active-radio');
-
-            document.getElementById('active-country-label').innerText = `${radio.flag} ${radio.name} - ${radio.station}`;
-
-            const radioSong = {
-                title: radio.station,
-                artist: `Radio en Vivo (${radio.name} ${radio.flag})`,
-                cover_url: radio.cover,
-                source: `RADIO LIVE ${code}`,
-                stream_url: radio.url,
-                lyrics: "Transmisión en vivo de radio. Las letras en tiempo real no están disponibles para esta fuente."
-            };
-
-            playTrack(radioSong);
-        }
-
-        function renderRadioCards() {
-            const container = document.getElementById('radio-cards-container');
-            if (!container) return;
-
-            container.innerHTML = Object.keys(countryRadios).map(code => {
-                const r = countryRadios[code];
-                return `
-                    <div onclick="playCountryRadio('${code}')" class="glass-card p-3 rounded-2xl cursor-pointer hover:border-emerald-500/50 transition group flex flex-col justify-between">
-                        <div class="relative aspect-video rounded-xl bg-zinc-900 overflow-hidden mb-2">
-                            <img src="${r.cover}" alt="Radio ${r.name}" class="w-full h-full object-cover group-hover:scale-105 transition">
-                            <div class="absolute top-2 left-2 bg-black/60 px-2 py-0.5 rounded text-xs">${r.flag}</div>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-white text-xs line-clamp-1">${r.station}</h4>
-                            <p class="text-[10px] text-emerald-400 font-mono mt-0.5">Emisora en vivo</p>
-                        </div>
-                    </div>
-                `;
-            }).join('');
         }
 
         function playTrack(song) {
             currentSong = song;
             document.getElementById('player-title').innerText = song.title;
             document.getElementById('player-artist').innerText = song.artist || 'Desconocido';
-            document.getElementById('player-cover').src = song.cover_url || song.high_res_cover || 'https://via.placeholder.com/150';
-            document.getElementById('player-cover').alt = `Carátula de ${song.title}`;
-            document.getElementById('player-source').innerText = (song.source || 'OGG v2 STREAM').toUpperCase();
+            document.getElementById('player-cover').src = song.cover_url || song.high_res_cover || 'https://via.placeholder.com/80';
+            document.getElementById('player-source').innerText = (song.source || 'STREAM').toUpperCase();
             document.getElementById('player-bar').classList.remove('translate-y-full');
-
-            const streamUrl = song.stream_url || `/api/v2/stream/${song.id}`;
-            audioElement.src = streamUrl;
-            
-            audioElement.play().then(() => {
-                isPlaying = true;
-                updatePlayButton();
-            }).catch(err => {
-                console.error("Error al reproducir audio:", err);
-            });
+            audioElement.src = song.stream_url || `/api/v2/stream/${song.id}`;
+            audioElement.play().then(() => { isPlaying = true; updatePlayButton(); }).catch(console.error);
         }
 
         function togglePlay() {
             if (!currentSong) return;
-            if (isPlaying) {
-                audioElement.pause();
-                isPlaying = false;
-            } else {
-                audioElement.play();
-                isPlaying = true;
-            }
+            if (isPlaying) { audioElement.pause(); isPlaying = false; }
+            else { audioElement.play(); isPlaying = true; }
             updatePlayButton();
         }
 
         function updatePlayButton() {
             const btn = document.getElementById('btn-play');
-            btn.innerHTML = isPlaying 
-                ? '<i class="fa-solid fa-pause text-xs"></i>' 
-                : '<i class="fa-solid fa-play text-xs ml-0.5"></i>';
+            btn.innerHTML = isPlaying ? '<i class="fa-solid fa-pause text-xs"></i>' : '<i class="fa-solid fa-play text-xs ml-0.5"></i>';
         }
 
         function openLyricsModal() {
             if (!currentSong) return;
-            document.getElementById('lyrics-content').innerText = currentSong.lyrics || "Letra sincronizada no disponible para esta pista.";
+            document.getElementById('lyrics-content').innerText = currentSong.lyrics || "Letra no disponible.";
             document.getElementById('lyrics-modal').classList.remove('hidden');
         }
-
-        function closeLyricsModal() {
-            document.getElementById('lyrics-modal').classList.add('hidden');
-        }
+        function closeLyricsModal() { document.getElementById('lyrics-modal').classList.add('hidden'); }
 
         function handleSearch(query) {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(async () => {
-                if (!query.trim()) {
-                    renderSongs(globalCatalog);
-                    return;
-                }
+                if (!query.trim()) { renderSongs(globalCatalog); return; }
                 try {
                     const res = await fetch(`/api/v1/search?q=${encodeURIComponent(query)}`);
                     const data = await res.json();
-                    if (data.status === 'success') {
-                        renderSongs(data.results);
-                    }
-                } catch (e) {
-                    console.error('Error buscando:', e);
-                }
+                    if (data.status === 'success') renderSongs(data.results);
+                } catch (e) { console.error(e); }
             }, 300);
         }
 
@@ -961,7 +1039,7 @@ const data = await response.json();</pre>
             defaultGenres.forEach(g => {
                 const btn = document.createElement('button');
                 btn.onclick = () => setGenreFilter(g);
-                btn.className = "genre-btn px-3 py-1.5 rounded-lg text-xs font-semibold glass-card text-zinc-300 hover:text-white whitespace-nowrap transition";
+                btn.className = "genre-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-white/60 text-[#6B6560] hover:text-[#2C2A28] border border-black/5 whitespace-nowrap shrink-0 transition";
                 btn.innerText = g;
                 container.appendChild(btn);
             });
@@ -969,46 +1047,38 @@ const data = await response.json();</pre>
 
         function setGenreFilter(genre) {
             currentGenre = genre;
-            if (!genre) {
-                renderSongs(globalCatalog);
-                return;
-            }
-            const filtered = globalCatalog.filter(s => (s.genre || '').toLowerCase().includes(genre.toLowerCase()));
-            renderSongs(filtered);
+            if (!genre) { renderSongs(globalCatalog); return; }
+            renderSongs(globalCatalog.filter(s => (s.genre || '').toLowerCase().includes(genre.toLowerCase())));
         }
 
         function renderSongs(data) {
             const grid = document.getElementById('catalog-grid');
             if (!data || data.length === 0) {
-                grid.innerHTML = `<p class="col-span-full text-center text-zinc-500 py-12 text-xs font-mono">No se encontraron pistas en la base de datos.</p>`;
+                grid.innerHTML = `<p class="col-span-full text-center text-[#9B9590] py-16 text-sm">No se encontraron pistas.</p>`;
                 return;
             }
-
             grid.innerHTML = data.map(song => `
-                <div class="glass-card rounded-xl p-2.5 flex flex-col justify-between group cursor-pointer" onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")})'>
-                    <div class="relative aspect-square rounded-lg bg-zinc-900 overflow-hidden mb-2">
-                        <img src="${song.cover_url || song.high_res_cover || 'https://via.placeholder.com/300'}" alt="Carátula de ${song.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                            <div class="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-lg">
+                <div class="glass-card rounded-2xl p-2.5 flex flex-col group cursor-pointer" onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")})'>
+                    <div class="relative aspect-square rounded-xl bg-cream-200 overflow-hidden mb-2">
+                        <img src="\( {song.cover_url || song.high_res_cover || 'https://via.placeholder.com/300'}" alt=" \){song.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <div class="w-9 h-9 rounded-full bg-white text-[#2C2A28] flex items-center justify-center shadow-soft">
                                 <i class="fa-solid fa-play text-xs ml-0.5"></i>
                             </div>
                         </div>
                     </div>
-                    <div>
-                        <h4 class="font-bold text-white text-xs line-clamp-1">${song.title}</h4>
-                        <p class="text-[10px] text-zinc-400 line-clamp-1 mt-0.5">${song.artist}</p>
-                    </div>
-                    <div class="mt-2 pt-1.5 border-t border-white/10 flex items-center justify-between text-[9px] font-mono text-zinc-500">
-                        <span class="bg-white/10 px-1.5 py-0.5 rounded text-zinc-300 truncate max-w-[70px]">${song.genre || 'General'}</span>
+                    <h4 class="font-medium text-sm text-[#2C2A28] line-clamp-1">${song.title}</h4>
+                    <p class="text-xs text-[#6B6560] line-clamp-1 mt-0.5">${song.artist}</p>
+                    <div class="mt-2 pt-1.5 border-t border-black/5 flex items-center justify-between text-[10px] text-[#9B9590]">
+                        <span class="bg-white/60 px-1.5 py-0.5 rounded text-[#6B6560] truncate max-w-[70px]">${song.genre || 'General'}</span>
                         <span>${(song.source || 'db').toUpperCase()}</span>
                     </div>
-                </div>
-            `).join('');
+                </div>`).join('');
         }
 
         function toggleAdminPanel() {
             if (!currentUser || !currentUser.apiKey) {
-                alert('Debes iniciar sesión para obtener tu API Key y subir pistas.');
+                alert('Debes iniciar sesión para subir pistas.');
                 openAuthModal('login');
                 return;
             }
@@ -1017,11 +1087,7 @@ const data = await response.json();</pre>
 
         async function addCustomSong(e) {
             e.preventDefault();
-            if (!currentUser || !currentUser.apiKey) {
-                alert('API Key de usuario requerida.');
-                return;
-            }
-
+            if (!currentUser?.apiKey) return;
             const songData = {
                 title: document.getElementById('song-title').value,
                 artist: document.getElementById('song-artist').value,
@@ -1031,96 +1097,70 @@ const data = await response.json();</pre>
                 cover_url: document.getElementById('song-cover-url').value,
                 lyrics: document.getElementById('song-lyrics').value
             };
-
             try {
                 const res = await fetch('/api/upload', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': currentUser.apiKey
-                    },
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': currentUser.apiKey },
                     body: JSON.stringify(songData)
                 });
-
                 const data = await res.json();
                 if (data.success) {
-                    alert('¡Canción inyectada exitosamente a la base de datos!');
+                    alert('¡Canción inyectada!');
                     document.getElementById('upload-form').reset();
                     toggleAdminPanel();
                     fetchCatalog();
-                } else {
-                    alert('Error: ' + (data.error || 'No se pudo insertar'));
-                }
-            } catch (err) {
-                alert('Error al conectar con el servidor.');
-            }
+                } else alert('Error: ' + (data.error || 'No se pudo insertar'));
+            } catch { alert('Error de conexión'); }
         }
 
         function setDocVersion(v) {
             activeDocVersion = v;
-            ['v1', 'v2', 'v3', 'v4', 'v5'].forEach(ver => {
+            ['v1','v2','v3','v4','v5'].forEach(ver => {
                 const tab = document.getElementById(`tab-${ver}`);
-                if (tab) {
-                    tab.className = (ver === v) 
-                        ? 'py-2 rounded-xl bg-white text-black font-bold text-center'
-                        : 'py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center';
-                }
+                if (tab) tab.className = ver === v
+                    ? 'px-3.5 py-2 rounded-xl bg-[#2C2A28] text-white'
+                    : 'px-3.5 py-2 rounded-xl bg-white/50 text-[#6B6560] hover:text-[#2C2A28]';
             });
-
             const display = document.getElementById('endpoint-url-display');
             const preview = document.getElementById('doc-code-preview');
             const method = document.getElementById('doc-method');
-
-            if (v === 'v1') {
-                method.innerText = 'GET';
-                display.innerText = '/api/v1/catalog';
-                preview.innerText = `// API v1: Catálogo Estándar\nconst res = await fetch('/api/v1/catalog');\nconst data = await res.json();`;
-            } else if (v === 'v2') {
-                method.innerText = 'GET';
-                display.innerText = '/api/v2/catalog';
-                preview.innerText = `// API v2: Metadatos Enriquecidos y Letras LRC\nconst res = await fetch('/api/v2/catalog');\nconst data = await res.json();`;
-            } else if (v === 'v3') {
-                method.innerText = 'GET';
-                display.innerText = '/api/v3/stream/:id';
-                preview.innerText = `// API v3: Audio Streaming OGG Optimizado\nconst streamUrl = "/api/v3/stream/104";\nconst audio = new Audio(streamUrl);`;
-            } else if (v === 'v4') {
-                method.innerText = 'GET';
-                display.innerText = '/api/v4/trends';
-                preview.innerText = `// API v4: Métricas y Tendencias\nconst res = await fetch('/api/v4/trends');\nconst analytics = await res.json();`;
-            } else if (v === 'v5') {
-                method.innerText = 'POST';
-                display.innerText = '/api/v5/batch-query';
-                preview.innerText = `// API v5: Consulta Batch Autenticada con tu Key Única\nconst res = await fetch('/api/v5/batch-query', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json', 'x-api-key': 'tu_api_key_unica' },\n  body: JSON.stringify({ ids: [1, 2, 3, 4] })\n});`;
-            }
+            const mapData = {
+                v1: { m: 'GET', u: '/api/v1/catalog', c: `// API v1\nconst res = await fetch('/api/v1/catalog');\nconst data = await res.json();` },
+                v2: { m: 'GET', u: '/api/v2/catalog', c: `// API v2 HD + LRC\nconst res = await fetch('/api/v2/catalog');\nconst data = await res.json();` },
+                v3: { m: 'GET', u: '/api/v3/stream/:id', c: `// API v3 Stream\nconst audio = new Audio('/api/v3/stream/104');` },
+                v4: { m: 'GET', u: '/api/v4/trends', c: `// API v4 Analytics\nconst res = await fetch('/api/v4/trends');\nconst analytics = await res.json();` },
+                v5: { m: 'POST', u: '/api/v5/batch-query', c: `// API v5 Batch\nconst res = await fetch('/api/v5/batch-query', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json', 'x-api-key': 'tu_key' },\n  body: JSON.stringify({ ids: [1,2,3] })\n});` }
+            };
+            const d = mapData[v];
+            method.innerText = d.m;
+            display.innerText = d.u;
+            preview.innerText = d.c;
         }
 
         function initDashboardCharts() {
-            const ctx1 = document.getElementById('requestsChart').getContext('2d');
-            const ctx2 = document.getElementById('clientsChart').getContext('2d');
-
+            const ctx1 = document.getElementById('requestsChart')?.getContext('2d');
+            const ctx2 = document.getElementById('clientsChart')?.getContext('2d');
+            if (!ctx1 || !ctx2) return;
             if (requestsChart) requestsChart.destroy();
             if (clientsChart) clientsChart.destroy();
 
             requestsChart = new Chart(ctx1, {
                 type: 'line',
                 data: {
-                    labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'],
+                    labels: ['Sem 1','Sem 2','Sem 3','Sem 4'],
                     datasets: [{
-                        label: 'Peticiones API Reales',
                         data: [1200, 2400, 1800, 3100],
-                        borderColor: '#ffffff',
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        fill: true,
-                        tension: 0.4
+                        borderColor: '#C5D4E8',
+                        backgroundColor: 'rgba(197,212,232,0.15)',
+                        fill: true, tension: 0.4, borderWidth: 2
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a1a1aa' } },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a1a1aa' } }
+                        x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9B9590', font: { size: 11 } } },
+                        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9B9590', font: { size: 11 } } }
                     }
                 }
             });
@@ -1128,47 +1168,38 @@ const data = await response.json();</pre>
             clientsChart = new Chart(ctx2, {
                 type: 'doughnut',
                 data: {
-                    labels: ['API v1', 'API v2', 'API v3', 'API v4', 'API v5'],
+                    labels: ['v1','v2','v3','v4','v5'],
                     datasets: [{
-                        data: [35, 25, 20, 10, 10],
-                        backgroundColor: ['#10b981', '#0284c7', '#a855f7', '#f59e0b', '#ec4899'],
+                        data: [35,25,20,10,10],
+                        backgroundColor: ['#C8E0D5','#C5D4E8','#F2C4CE','#E8B4A0','#D4C5E8'],
                         borderWidth: 0
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa' } } }
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#6B6560', font: { size: 11 }, boxWidth: 12 } } }
                 }
             });
         }
 
-        function refreshDashboardMetrics() {
-            fetchHealth();
-            initDashboardCharts();
-        }
+        function refreshDashboardMetrics() { fetchHealth(); initDashboardCharts(); }
 
         function openAuthModal(mode) {
             currentAuthMode = mode;
             updateModalUI();
             document.getElementById('auth-modal').classList.remove('hidden');
         }
-
-        function closeAuthModal() {
-            document.getElementById('auth-modal').classList.add('hidden');
-        }
-
+        function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
         function toggleAuthMode() {
-            currentAuthMode = (currentAuthMode === 'login') ? 'register' : 'login';
+            currentAuthMode = currentAuthMode === 'login' ? 'register' : 'login';
             updateModalUI();
         }
-
         function updateModalUI() {
             const isReg = currentAuthMode === 'register';
-            document.getElementById('modal-title').innerText = isReg ? 'Crear Cuenta Enterprise' : 'Iniciar Sesión';
-            document.getElementById('modal-subtitle').innerText = isReg ? 'Genera tu clave API personal única.' : 'Accede a tu panel y clave API.';
-            document.getElementById('modal-submit-btn').innerText = isReg ? 'Registrarse & Generar Key' : 'Entrar al Sistema';
-            document.getElementById('modal-toggle-text').innerText = isReg ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate aquí';
+            document.getElementById('modal-title').innerText = isReg ? 'Crear cuenta' : 'Iniciar sesión';
+            document.getElementById('modal-subtitle').innerText = isReg ? 'Genera tu API Key personal' : 'Accede a tu panel';
+            document.getElementById('modal-submit-btn').innerText = isReg ? 'Registrarse' : 'Entrar';
+            document.getElementById('modal-toggle-text').innerText = isReg ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate';
         }
 
         async function handleAuthSubmit(e) {
@@ -1176,14 +1207,12 @@ const data = await response.json();</pre>
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
             const endpoint = currentAuthMode === 'register' ? '/api/auth/register' : '/api/auth/login';
-
             try {
                 const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-
                 const data = await res.json();
                 if (data.status === 'success') {
                     currentUser = data.user;
@@ -1191,12 +1220,8 @@ const data = await response.json();</pre>
                     updateUserSessionUI();
                     closeAuthModal();
                     showView('dashboard');
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            } catch (err) {
-                alert('Error al autenticar con el servidor.');
-            }
+                } else alert('Error: ' + data.message);
+            } catch { alert('Error de autenticación'); }
         }
 
         function logoutUser() {
@@ -1210,16 +1235,14 @@ const data = await response.json();</pre>
             const authBtns = document.getElementById('auth-buttons-container');
             const userProfile = document.getElementById('user-profile-container');
             const apiKeyInput = document.getElementById('user-api-key-input');
-
             if (currentUser) {
-                if (authBtns) authBtns.classList.add('hidden');
-                if (userProfile) userProfile.classList.remove('hidden');
-                const displayEmail = document.getElementById('user-display-email');
-                if (displayEmail) displayEmail.innerText = currentUser.email;
+                authBtns?.classList.add('hidden');
+                userProfile?.classList.remove('hidden');
+                document.getElementById('user-display-email').innerText = currentUser.email;
                 if (apiKeyInput) apiKeyInput.value = currentUser.apiKey;
             } else {
-                if (authBtns) authBtns.classList.remove('hidden');
-                if (userProfile) userProfile.classList.add('hidden');
+                authBtns?.classList.remove('hidden');
+                userProfile?.classList.add('hidden');
                 if (apiKeyInput) apiKeyInput.value = "Inicia sesión para ver tu Key";
             }
         }
@@ -1229,26 +1252,22 @@ const data = await response.json();</pre>
             const icon = document.getElementById('eye-icon');
             if (input.type === 'password') {
                 input.type = 'text';
-                icon.className = 'fa-regular fa-eye-slash';
+                icon.className = 'fa-regular fa-eye-slash text-xs';
             } else {
                 input.type = 'password';
-                icon.className = 'fa-regular fa-eye';
+                icon.className = 'fa-regular fa-eye text-xs';
             }
         }
 
         function copyUserApiKey() {
-            const input = document.getElementById('user-api-key-input');
-            if (!currentUser) {
-                alert('Debes iniciar sesión para obtener tu Key');
-                return;
-            }
-            navigator.clipboard.writeText(input.value);
-            alert('¡Clave API Copiada!');
+            if (!currentUser) { alert('Inicia sesión primero'); return; }
+            navigator.clipboard.writeText(document.getElementById('user-api-key-input').value);
+            alert('¡API Key copiada!');
         }
 
         function executeSandboxFetch() {
             fetchCatalog();
-            alert(`Petición ejecutada a ${document.getElementById('endpoint-url-display').innerText}`);
+            alert(`Petición enviada a ${document.getElementById('endpoint-url-display').innerText}`);
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -1261,5 +1280,4 @@ const data = await response.json();</pre>
         });
     </script>
 </body>
-</html>
-
+    </html>
