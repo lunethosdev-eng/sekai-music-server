@@ -135,6 +135,33 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
+        /* Estilos del Mapa Interactivo */
+        .country-node {
+            cursor: pointer;
+            fill: #1e293b;
+            stroke: #334155;
+            stroke-width: 1.5;
+            transition: all 0.3s ease;
+        }
+
+        .country-node:hover {
+            fill: #3b82f6;
+            stroke: #60a5fa;
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+        }
+
+        .country-node.active-radio {
+            fill: #10b981;
+            stroke: #34d399;
+            animation: pulse-country 2s infinite;
+        }
+
+        @keyframes pulse-country {
+            0% { fill: #10b981; }
+            50% { fill: #059669; }
+            100% { fill: #10b981; }
+        }
     </style>
 </head>
 <body class="relative min-h-screen flex flex-col justify-between selection:bg-white selection:text-black pb-28 md:pb-24">
@@ -189,6 +216,9 @@
             <nav class="hidden lg:flex items-center space-x-1 bg-white/5 border border-white/10 p-1.5 rounded-full text-xs font-medium backdrop-blur-md">
                 <button onclick="showView('landing')" id="nav-landing" class="px-4 py-2 rounded-full text-white bg-white/10 transition">Overview</button>
                 <button onclick="showView('catalog')" id="nav-catalog" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition">Catálogo Audio</button>
+                <button onclick="showView('worldmap')" id="nav-worldmap" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-earth-americas text-emerald-400"></i> Mundo 2 (Radios)
+                </button>
                 <button onclick="showView('docs')" id="nav-docs" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition">APIs (v1-v5)</button>
                 <button onclick="showView('dashboard')" id="nav-dashboard" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition flex items-center gap-1.5">
                     <i class="fa-solid fa-chart-line text-[10px]"></i> Dashboard
@@ -218,7 +248,7 @@
             </div>
 
             <!-- Mobile Menu Toggle Button -->
-            <button onclick="toggleMobileMenu()" class="lg:hidden w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-300">
+            <button onclick="toggleMobileMenu()" aria-label="Abrir menú de navegación" class="lg:hidden w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-300">
                 <i class="fa-solid fa-bars text-sm" id="mobile-menu-icon"></i>
             </button>
 
@@ -229,6 +259,9 @@
             <nav class="flex flex-col space-y-2 text-sm">
                 <button onclick="showView('landing'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Overview</button>
                 <button onclick="showView('catalog'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Catálogo Audio</button>
+                <button onclick="showView('worldmap'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-emerald-400 hover:bg-white/10 flex items-center gap-2">
+                    <i class="fa-solid fa-earth-americas"></i> Mundo 2 (Radios Globales)
+                </button>
                 <button onclick="showView('docs'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Documentación APIs</button>
                 <button onclick="showView('dashboard'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Dashboard</button>
             </nav>
@@ -253,7 +286,7 @@
             </h1>
 
             <p class="text-zinc-400 text-xs sm:text-base font-normal max-w-2xl mx-auto leading-relaxed">
-                APIs dedicadas e independientes por usuario. Métricas en tiempo real, transcodificación nativa OGG, letras sincronizadas LRC y control remoto por Discord.
+                APIs dedicadas e independientes por usuario. Métricas en tiempo real, transcodificación nativa OGG, letras sincronizadas LRC y transmisores de radio en vivo global.
             </p>
 
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -308,7 +341,86 @@ curl -X GET "/api/v2/catalog" \
         </div>
     </section>
 
-    <!-- VIEW 2: DASHBOARD -->
+    <!-- VIEW 2: MAPA DEL MUNDO 2 (RADIOS EN VIVO) -->
+    <section id="view-worldmap" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+            <div>
+                <div class="inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-mono text-emerald-400 mb-2">
+                    <i class="fa-solid fa-signal animate-pulse"></i>
+                    <span>MUNDO 2 - Transmisión Global Sincronizada</span>
+                </div>
+                <h1 class="font-heading font-extrabold text-2xl sm:text-4xl text-white">Mapa de Radios Mundiales</h1>
+                <p class="text-xs font-mono text-zinc-400 mt-1">Haz clic en cualquier país del mapa interactivo para escuchar su emisora nacional en vivo.</p>
+            </div>
+
+            <!-- Indicador Radio Activa -->
+            <div class="glass-card px-4 py-3 rounded-2xl border border-emerald-500/30 flex items-center space-x-3">
+                <div class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></div>
+                <div>
+                    <p class="text-[10px] font-mono uppercase text-zinc-400">Radio Seleccionada:</p>
+                    <p id="active-country-label" class="text-xs font-bold text-emerald-400 font-mono">Selecciona un país en el mapa</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenedor del Mapa Interactivo SVG -->
+        <div class="glass-panel p-4 sm:p-6 rounded-3xl border border-white/10 relative overflow-hidden">
+            <div class="w-full overflow-x-auto">
+                <svg id="world-map-svg" viewBox="0 0 1000 500" class="w-full h-auto min-w-[700px]">
+                    <!-- Fondos de rejilla global -->
+                    <defs>
+                        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+                        </pattern>
+                    </defs>
+                    <rect width="1000" height="500" fill="url(#grid)" />
+
+                    <!-- PAÍSES VECTORIALES INTERACTIVOS CON RADIOS INTEGRADAS -->
+                    <!-- América del Norte -->
+                    <path class="country-node" id="country-US" d="M 150 120 L 260 120 L 250 190 L 140 180 Z" onclick="playCountryRadio('US')" data-name="Estados Unidos" />
+                    <text x="180" y="155" fill="#ffffff" font-size="10" font-family="monospace" pointer-events="none">EE.UU. 🇺🇸</text>
+
+                    <path class="country-node" id="country-MX" d="M 160 190 L 220 190 L 200 240 L 170 230 Z" onclick="playCountryRadio('MX')" data-name="México" />
+                    <text x="175" y="215" fill="#ffffff" font-size="9" font-family="monospace" pointer-events="none">México 🇲🇽</text>
+
+                    <!-- América del Sur -->
+                    <path class="country-node" id="country-BR" d="M 280 270 L 360 260 L 340 350 L 290 330 Z" onclick="playCountryRadio('BR')" data-name="Brasil" />
+                    <text x="305" y="310" fill="#ffffff" font-size="10" font-family="monospace" pointer-events="none">Brasil 🇧🇷</text>
+
+                    <path class="country-node" id="country-AR" d="M 270 355 L 310 355 L 290 440 L 270 420 Z" onclick="playCountryRadio('AR')" data-name="Argentina" />
+                    <text x="272" y="395" fill="#ffffff" font-size="9" font-family="monospace" pointer-events="none">Argentina 🇦🇷</text>
+
+                    <!-- Europa -->
+                    <path class="country-node" id="country-ES" d="M 450 140 L 480 140 L 480 170 L 450 170 Z" onclick="playCountryRadio('ES')" data-name="España" />
+                    <text x="452" y="158" fill="#ffffff" font-size="8" font-family="monospace" pointer-events="none">España 🇪🇸</text>
+
+                    <path class="country-node" id="country-FR" d="M 470 110 L 505 110 L 500 138 L 470 138 Z" onclick="playCountryRadio('FR')" data-name="Francia" />
+                    <text x="473" y="128" fill="#ffffff" font-size="8" font-family="monospace" pointer-events="none">Francia 🇫🇷</text>
+
+                    <path class="country-node" id="country-UK" d="M 460 85 L 485 85 L 485 105 L 460 105 Z" onclick="playCountryRadio('UK')" data-name="Reino Unido" />
+                    <text x="462" y="98" fill="#ffffff" font-size="7" font-family="monospace" pointer-events="none">UK 🇬🇧</text>
+
+                    <!-- Asia -->
+                    <path class="country-node" id="country-JP" d="M 820 140 L 860 130 L 850 180 L 820 170 Z" onclick="playCountryRadio('JP')" data-name="Japón" />
+                    <text x="825" y="158" fill="#ffffff" font-size="9" font-family="monospace" pointer-events="none">Japón 🇯🇵</text>
+
+                    <path class="country-node" id="country-KR" d="M 775 145 L 805 145 L 805 170 L 775 170 Z" onclick="playCountryRadio('KR')" data-name="Corea del Sur" />
+                    <text x="777" y="160" fill="#ffffff" font-size="7" font-family="monospace" pointer-events="none">Corea 🇰🇷</text>
+
+                    <!-- Oceanía -->
+                    <path class="country-node" id="country-AU" d="M 780 320 L 880 320 L 860 410 L 760 390 Z" onclick="playCountryRadio('AU')" data-name="Australia" />
+                    <text x="800" y="365" fill="#ffffff" font-size="10" font-family="monospace" pointer-events="none">Australia 🇦🇺</text>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Tarjetas Rápidas de Estaciones de Radio -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3" id="radio-cards-container">
+            <!-- Inyectado dinámicamente -->
+        </div>
+    </section>
+
+    <!-- VIEW 3: DASHBOARD -->
     <section id="view-dashboard" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
             <div>
@@ -321,7 +433,7 @@ curl -X GET "/api/v2/catalog" \
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     <span class="text-zinc-300">Estado: <strong class="text-white" id="db-health-status">Cargando...</strong></span>
                 </div>
-                <button onclick="refreshDashboardMetrics()" class="glass-button p-2.5 rounded-xl text-xs text-zinc-300 hover:text-white">
+                <button onclick="refreshDashboardMetrics()" aria-label="Actualizar métricas" class="glass-button p-2.5 rounded-xl text-xs text-zinc-300 hover:text-white">
                     <i class="fa-solid fa-rotate-right"></i>
                 </button>
             </div>
@@ -338,7 +450,7 @@ curl -X GET "/api/v2/catalog" \
                     <div class="flex items-center space-x-2 bg-black/80 p-2.5 rounded-xl border border-white/10 w-full sm:max-w-md">
                         <i class="fa-solid fa-key text-zinc-500 text-xs pl-1"></i>
                         <input type="password" id="user-api-key-input" readonly value="Inicia sesión para ver tu Key" class="bg-transparent font-mono text-xs text-zinc-200 focus:outline-none w-full min-w-0">
-                        <button onclick="toggleKeyVisibility()" class="text-xs text-zinc-400 hover:text-white px-1.5"><i class="fa-regular fa-eye" id="eye-icon"></i></button>
+                        <button onclick="toggleKeyVisibility()" aria-label="Mostrar u ocultar clave API" class="text-xs text-zinc-400 hover:text-white px-1.5"><i class="fa-regular fa-eye" id="eye-icon"></i></button>
                         <button onclick="copyUserApiKey()" class="bg-white/10 hover:bg-white text-white hover:text-black px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition shrink-0">Copiar</button>
                     </div>
                 </div>
@@ -414,7 +526,7 @@ curl -X GET "/api/v2/catalog" \
         </div>
     </section>
 
-    <!-- VIEW 3: MUSIC CATALOG -->
+    <!-- VIEW 4: MUSIC CATALOG -->
     <section id="view-catalog" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full space-y-6">
         <div class="flex flex-col md:flex-row items-center justify-between gap-3">
             <div class="relative w-full md:w-1/2">
@@ -461,7 +573,7 @@ curl -X GET "/api/v2/catalog" \
         </div>
     </section>
 
-    <!-- VIEW 4: API DOCUMENTATION (v1 a v5) -->
+    <!-- VIEW 5: API DOCUMENTATION (v1 a v5) -->
     <section id="view-docs" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full space-y-6">
         <div class="glass-panel p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/10 space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-4 gap-2">
@@ -509,7 +621,7 @@ const data = await response.json();</pre>
     <!-- AUTHENTICATION MODAL REAL -->
     <div id="auth-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl hidden flex items-center justify-center p-4">
         <div class="glass-panel max-w-sm w-full p-6 rounded-2xl relative border border-white/15 space-y-4 shadow-2xl">
-            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
+            <button onclick="closeAuthModal()" aria-label="Cerrar modal de autenticación" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
 
@@ -523,11 +635,11 @@ const data = await response.json();</pre>
 
             <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-3">
                 <div>
-                    <label class="text-[11px] font-mono text-zinc-300">Correo Electrónico:</label>
+                    <label for="auth-email" class="text-[11px] font-mono text-zinc-300">Correo Electrónico:</label>
                     <input type="email" id="auth-email" required placeholder="desarrollador@empresa.com" class="w-full glass-input p-2.5 rounded-xl text-xs mt-1">
                 </div>
                 <div>
-                    <label class="text-[11px] font-mono text-zinc-300">Contraseña:</label>
+                    <label for="auth-password" class="text-[11px] font-mono text-zinc-300">Contraseña:</label>
                     <input type="password" id="auth-password" required placeholder="••••••••" class="w-full glass-input p-2.5 rounded-xl text-xs mt-1">
                 </div>
 
@@ -549,7 +661,7 @@ const data = await response.json();</pre>
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
             
             <div class="flex items-center space-x-2.5 w-1/2 sm:w-1/3 min-w-0">
-                <img id="player-cover" src="https://via.placeholder.com/150" class="w-10 h-10 object-cover rounded-lg bg-zinc-900 border border-white/10 shrink-0">
+                <img id="player-cover" src="https://via.placeholder.com/150" alt="Carátula de la pista en reproducción" class="w-10 h-10 object-cover rounded-lg bg-zinc-900 border border-white/10 shrink-0">
                 <div class="truncate">
                     <h4 id="player-title" class="font-bold text-white text-xs truncate">Selecciona una pista</h4>
                     <p id="player-artist" class="text-[10px] text-zinc-400 truncate">--</p>
@@ -557,7 +669,7 @@ const data = await response.json();</pre>
             </div>
 
             <div class="flex items-center justify-center space-x-2 sm:space-x-3 shrink-0">
-                <button onclick="togglePlay()" id="btn-play" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition shadow-lg">
+                <button onclick="togglePlay()" id="btn-play" aria-label="Reproducir o pausar" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition shadow-lg">
                     <i class="fa-solid fa-play text-xs ml-0.5"></i>
                 </button>
                 <button onclick="openLyricsModal()" class="text-[11px] text-zinc-300 hover:text-white px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 font-mono">
@@ -575,7 +687,7 @@ const data = await response.json();</pre>
     <!-- LYRICS MODAL -->
     <div id="lyrics-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl hidden flex items-center justify-center p-4">
         <div class="glass-panel max-w-md w-full p-5 rounded-2xl relative space-y-3 border border-white/15">
-            <button onclick="closeLyricsModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
+            <button onclick="closeLyricsModal()" aria-label="Cerrar modal de letras" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
             <h3 class="font-heading font-extrabold text-base text-white">Letra Sincronizada (LRC)</h3>
@@ -586,6 +698,22 @@ const data = await response.json();</pre>
     <!-- SCRIPT & FRONTEND LOGIC COMPLETA CON SEGURIDAD ANTI-INSPECCIÓN -->
     <script>
         // ===============================================
+        // BASE DE DATOS DE RADIOS POR PAÍS (MUNDO 2)
+        // ===============================================
+        const countryRadios = {
+            'US': { name: "EE.UU.", station: "SomaFM Groove Salad", flag: "🇺🇸", url: "https://ice2.somafm.com/groovesalad-128-mp3", cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300" },
+            'MX': { name: "México", station: "Alfa 91.3 FM Live", flag: "🇲🇽", url: "https://stream.zeno.fm/f3wvbb14238uv", cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300" },
+            'BR': { name: "Brasil", station: "Bossa Nova Brazil", flag: "🇧🇷", url: "https://stream.zeno.fm/2w3xbb14238uv", cover: "https://images.unsplash.com/photo-1483412033650-1015ddeb83d1?w=300" },
+            'AR': { name: "Argentina", station: "Radio Con Vos 89.9", flag: "🇦🇷", url: "https://stream.zeno.fm/4w3xbb14238uv", cover: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300" },
+            'ES': { name: "España", station: "Radio Nacional España", flag: "🇪🇸", url: "https://rtveradio-live.rtve.es/rne_r1_main.mp3", cover: "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=300" },
+            'FR': { name: "Francia", station: "FIP Radio Paris", flag: "🇫🇷", url: "https://icecast.radiofrance.fr/fip-midfi.mp3", cover: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300" },
+            'UK': { name: "Reino Unido", station: "BBC Radio 1 Direct", flag: "🇬🇧", url: "https://stream.zeno.fm/8w3xbb14238uv", cover: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300" },
+            'JP': { name: "Japón", station: "Tokyo FM World Live", flag: "🇯🇵", url: "https://stream.zeno.fm/6w3xbb14238uv", cover: "https://images.unsplash.com/photo-1528164344705-47542687990d?w=300" },
+            'KR': { name: "Corea del Sur", station: "K-Pop Big B Radio", flag: "🇰🇷", url: "https://stream.zeno.fm/9w3xbb14238uv", cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300" },
+            'AU': { name: "Australia", station: "Triple J Sydney Live", flag: "🇦🇺", url: "https://stream.zeno.fm/1w3xbb14238uv", cover: "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=300" }
+        };
+
+        // ===============================================
         // PROTECCIÓN ANTI-INSPECCIÓN Y BLOQUEO DE CÓDIGO
         // ===============================================
         document.addEventListener('contextmenu', function(e) {
@@ -593,7 +721,6 @@ const data = await response.json();</pre>
         });
 
         document.addEventListener('keydown', function(e) {
-            // Deshabilitar F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+Shift+C
             if (e.keyCode === 123 || 
                (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) ||
                (e.ctrlKey && e.keyCode === 85)) {
@@ -602,13 +729,12 @@ const data = await response.json();</pre>
             }
         });
 
-        // Trampa contra herramientas de inspección
         setInterval(function() {
             const start = performance.now();
             (function() {}.constructor("debugger")());
             const end = performance.now();
             if (end - start > 100) {
-                document.body.innerHTML = '<div style="color:white;text-center;padding:50px;font-family:sans-serif;"><h1>Acceso Denegado</h1><p>Inspección de código detectada e interceptada por seguridad.</p></div>';
+                document.body.innerHTML = '<div style="color:white;text-align:center;padding:50px;font-family:sans-serif;"><h1>Acceso Denegado</h1><p>Inspección de código detectada e interceptada por seguridad.</p></div>';
             }
         }, 1000);
 
@@ -701,7 +827,7 @@ const data = await response.json();</pre>
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById(`view-${viewId}`).classList.add('active');
 
-            ['landing', 'catalog', 'docs', 'dashboard'].forEach(nav => {
+            ['landing', 'catalog', 'worldmap', 'docs', 'dashboard'].forEach(nav => {
                 const btn = document.getElementById(`nav-${nav}`);
                 if (btn) {
                     btn.className = (nav === viewId) 
@@ -713,7 +839,53 @@ const data = await response.json();</pre>
             if (viewId === 'dashboard') {
                 initDashboardCharts();
                 fetchHealth();
+            } else if (viewId === 'worldmap') {
+                renderRadioCards();
             }
+        }
+
+        // FUNCIÓN DEL MAPA 2: REPRODUCCIÓN DE RADIO EN VIVO
+        function playCountryRadio(code) {
+            const radio = countryRadios[code];
+            if (!radio) return;
+
+            document.querySelectorAll('.country-node').forEach(el => el.classList.remove('active-radio'));
+            const activeNode = document.getElementById(`country-${code}`);
+            if (activeNode) activeNode.classList.add('active-radio');
+
+            document.getElementById('active-country-label').innerText = `${radio.flag} ${radio.name} - ${radio.station}`;
+
+            const radioSong = {
+                title: radio.station,
+                artist: `Radio en Vivo (${radio.name} ${radio.flag})`,
+                cover_url: radio.cover,
+                source: `RADIO LIVE ${code}`,
+                stream_url: radio.url,
+                lyrics: "Transmisión en vivo de radio. Las letras en tiempo real no están disponibles para esta fuente."
+            };
+
+            playTrack(radioSong);
+        }
+
+        function renderRadioCards() {
+            const container = document.getElementById('radio-cards-container');
+            if (!container) return;
+
+            container.innerHTML = Object.keys(countryRadios).map(code => {
+                const r = countryRadios[code];
+                return `
+                    <div onclick="playCountryRadio('${code}')" class="glass-card p-3 rounded-2xl cursor-pointer hover:border-emerald-500/50 transition group flex flex-col justify-between">
+                        <div class="relative aspect-video rounded-xl bg-zinc-900 overflow-hidden mb-2">
+                            <img src="${r.cover}" alt="Radio ${r.name}" class="w-full h-full object-cover group-hover:scale-105 transition">
+                            <div class="absolute top-2 left-2 bg-black/60 px-2 py-0.5 rounded text-xs">${r.flag}</div>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-xs line-clamp-1">${r.station}</h4>
+                            <p class="text-[10px] text-emerald-400 font-mono mt-0.5">Emisora en vivo</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function playTrack(song) {
@@ -721,6 +893,7 @@ const data = await response.json();</pre>
             document.getElementById('player-title').innerText = song.title;
             document.getElementById('player-artist').innerText = song.artist || 'Desconocido';
             document.getElementById('player-cover').src = song.cover_url || song.high_res_cover || 'https://via.placeholder.com/150';
+            document.getElementById('player-cover').alt = `Carátula de ${song.title}`;
             document.getElementById('player-source').innerText = (song.source || 'OGG v2 STREAM').toUpperCase();
             document.getElementById('player-bar').classList.remove('translate-y-full');
 
@@ -814,7 +987,7 @@ const data = await response.json();</pre>
             grid.innerHTML = data.map(song => `
                 <div class="glass-card rounded-xl p-2.5 flex flex-col justify-between group cursor-pointer" onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")})'>
                     <div class="relative aspect-square rounded-lg bg-zinc-900 overflow-hidden mb-2">
-                        <img src="${song.cover_url || song.high_res_cover || 'https://via.placeholder.com/300'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <img src="${song.cover_url || song.high_res_cover || 'https://via.placeholder.com/300'}" alt="Carátula de ${song.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                         <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                             <div class="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-lg">
                                 <i class="fa-solid fa-play text-xs ml-0.5"></i>
