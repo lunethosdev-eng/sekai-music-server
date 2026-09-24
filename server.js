@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const cron = require('node-cron');
 const axios = require('axios');
 const ytSearch = require('yt-search');
@@ -9,6 +11,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const { PassThrough } = require('stream');
 const crypto = require('crypto');
+const path = require('path');
 
 // Configuración del motor de streaming de audio
 const play = require('play-dl');
@@ -17,9 +20,62 @@ const ffmpegPath = require('ffmpeg-static');
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 const app = express();
+
+// =========================================================================
+// 🛡️ PROTECCIÓN DE ARCHIVOS SENSIBLES & TROLEO ANTI-INSPECCIÓN/SCRAPING
+// =========================================================================
+
+// Bloqueo directo a archivos de código fuente, configuraciones o carpetas internas
+const FORBIDDEN_FILES = [
+    'server.js', 'package.json', 'package-lock.json', '.env', '.gitignore',
+    'Dockerfile', 'docker-compose.yml', 'README.md', 'tsconfig.json'
+];
+
+app.use((req, res, next) => {
+    const cleanPath = req.path.toLowerCase().trim();
+
+    // Comprobar si intentan solicitar archivos sensibles directamente
+    const isForbidden = FORBIDDEN_FILES.some(file => cleanPath.includes(file));
+    if (isForbidden || cleanPath.startsWith('/.git') || cleanPath.startsWith('/src')) {
+        return res.status(403).send(`
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <title>Acceso Denegado | Sekai Enterprise</title>
+                <style>
+                    body { background-color: #050508; color: #ff3366; font-family: monospace; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+                    .box { background: rgba(255,0,85,0.05); border: 1px solid #ff3366; padding: 40px; border-radius: 16px; max-width: 500px; }
+                    h1 { font-size: 24px; margin-bottom: 10px; }
+                    p { color: #a1a1aa; font-size: 14px; line-height: 1.6; }
+                </style>
+            </head>
+            <body>
+                <div class="box">
+                    <h1>🚨 ¿Con que eso querías hacer, verdad?</h1>
+                    <p>Mmm, eso está muy mal. Lárgate de acá y ponte a hacer tu trabajo bien.</p>
+                    <p style="color: #666; font-size: 11px; margin-top: 20px;">Owner Note: El dueño de este servidor es un desarrollador solo, respeta el trabajo.</p>
+                </div>
+            </body>
+            </html>
+        `);
+    }
+    next();
+});
+
+// Helmet: Oculta X-Powered-By y agrega cabeceras de seguridad HTTP
+app.use(helmet({
+    contentSecurityPolicy: false, // Desactivado para compatibilidad con CDN frontend externos
+}));
+
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+
+// Exponer únicamente el index.html y activos estáticos seguros
+app.use(express.static(path.join(__dirname, 'public'), {
+    dotfiles: 'ignore',
+    index: 'index.html'
+}));
 
 const PORT = process.env.PORT || 3000;
 const RENDER_URL = process.env.RENDER_URL || 'https://sekai-music-server.onrender.com';
@@ -34,6 +90,56 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// =========================================================================
+// ⚡ RATE LIMITING ADAPTATIVO (Peticiones ilimitadas para Apps Registradas)
+// =========================================================================
+
+// Rate Limiter Estricto para tráfico anónimo / desconocido
+const anonymousRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // Ventana de 15 minutos
+    max: 100, // Máximo 100 peticiones por ventana para IPs anónimas
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        status: 'error',
+        code: 429,
+        message: 'Límite de peticiones anónimas alcanzado (100 req/15min). Si eres una App o Partner, incluye tu x-api-key para acceso ilimitado.'
+    }
+});
+
+// Middleware Adaptativo: Evalúa la presencia de API Key antes de limitar
+const adaptiveRateLimiter = async (req, res, next) => {
+    const apiKey = req.headers['x-api-key'] || req.query.api_key;
+
+    // Si tiene la Master Key de Administrador -> Ilimitado
+    if (apiKey && apiKey === ADMIN_API_KEY) {
+        return next();
+    }
+
+    // Validar en Supabase si la clave pertenece a un cliente o App registrada
+    if (apiKey) {
+        try {
+            const { data } = await supabase
+                .from('users')
+                .select('id, email')
+                .eq('api_key', apiKey)
+                .maybeSingle();
+
+            if (data) {
+                // Es un cliente autenticado / App famosa -> Exento del Rate Limiter
+                req.user = data;
+                return next();
+            }
+        } catch (_) {}
+    }
+
+    // Petición anónima -> Aplicar Rate Limit por IP
+    return anonymousRateLimiter(req, res, next);
+};
+
+// Aplicar el Rate Limiter Adaptativo a todas las rutas de API
+app.use('/api/', adaptiveRateLimiter);
 
 const catalogCache = new NodeCache({ stdTTL: 120 });
 let soundcloudClientId = 'iZea6V13B2S91I1B1i0x90nI0N6N9p6a';
@@ -122,8 +228,10 @@ function generateUniqueApiKey() {
     return 'sk_live_' + crypto.randomBytes(24).toString('hex');
 }
 
-// Middleware de Autenticación de API Key Real (Validación en Supabase / Master Key)
+// Middleware de Autenticación de API Key Real
 const requireApiKey = async (req, res, next) => {
+    if (req.user) return next(); // Ya verificado por adaptiveRateLimiter
+
     const apiKey = req.headers['x-api-key'] || req.query.api_key;
     if (!apiKey) {
         return res.status(401).json({ status: 'error', message: 'API Key requerida en cabecera x-api-key o parámetro ?api_key=' });
@@ -225,51 +333,6 @@ async function fetchSyncedLyrics(title, artist) {
         } catch (_) {}
     }
     return '[00:00.00] Letra no disponible en la base de datos central.';
-}
-
-// Spotify Scraper Metadatos
-async function getSpotifyToken() {
-    try {
-        const res = await axios.get('https://open.spotify.com/get_access_token', {
-            headers: { 'User-Agent': getRandomUserAgent() },
-            timeout: 5000
-        });
-        return res.data?.accessToken || null;
-    } catch (e) {
-        console.error('❌ Error obteniendo token de Spotify:', e.message);
-        return null;
-    }
-}
-
-async function scrapeSpotifyPlaylist(playlistId) {
-    try {
-        const cleanId = playlistId.replace(/.*playlist[\/:]([a-zA-Z0-9]+).*/, '$1');
-        const token = await getSpotifyToken();
-        if (!token) return [];
-
-        const res = await axios.get(`https://api.spotify.com/v1/playlists/${cleanId}/tracks?limit=100`, {
-            headers: { 
-                'Authorization': `Bearer ${token}`,
-                'User-Agent': getRandomUserAgent()
-            },
-            timeout: 8000
-        });
-
-        if (!res.data || !res.data.items) return [];
-
-        return res.data.items
-            .filter(item => item.track)
-            .map(item => ({
-                title: item.track.name,
-                artist: item.track.artists ? item.track.artists.map(a => a.name).join(', ') : 'Desconocido',
-                album: item.track.album ? item.track.album.name : '',
-                cover_url: item.track.album?.images[0]?.url || null,
-                searchQuery: `${item.track.name} ${item.track.artists[0]?.name || ''}`
-            }));
-    } catch (e) {
-        console.error('❌ Error en Scraper de Spotify:', e.message);
-        return [];
-    }
 }
 
 // SoundCloud & YouTube Scrapers
@@ -455,7 +518,7 @@ cron.schedule('0 21,22,23,0,1,2,3,4,5,6 * * *', () => {
     runSlowScraper(500);
 });
 
-// Bot de Discord & Comandos de Administración en Tiempo Real
+// Bot de Discord & Comandos de Administración
 discordClient.on('messageCreate', async (message) => {
     if (message.author.bot || !message.content.startsWith('!')) return;
 
@@ -583,7 +646,6 @@ function convertStreamToOgg(inputStream) {
 
 // REST ENDPOINTS
 
-// Endpoint de Estado del Sistema y Mantenimiento/Anuncios
 app.get('/api/system/status', (req, res) => {
     res.json({
         status: 'ok',
@@ -595,7 +657,6 @@ app.get('/api/system/status', (req, res) => {
     });
 });
 
-// Registro Auténtico de Usuarios y Generación de API Keys Únicas
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -633,7 +694,6 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
-// Login Auténtico
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -657,7 +717,6 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// Health Metric
 app.get('/api/health', async (req, res) => {
     let dbOk = false;
     let songCount = 0;
@@ -683,9 +742,7 @@ app.get('/api/health', async (req, res) => {
     });
 });
 
-// ==========================================
-// API VERSION 1 (v1) - Catálogo Clásico
-// ==========================================
+// API VERSION 1
 app.get('/api/v1/catalog', async (req, res) => {
     try {
         const { data, error } = await supabase.from('songs').select('*').order('id', { ascending: false }).limit(200);
@@ -700,9 +757,7 @@ app.get('/api/v1/stream/:id', async (req, res) => {
     handleStreamRequest(req, res);
 });
 
-// ==========================================
-// API VERSION 2 (v2) - Metadatos HD & LRC
-// ==========================================
+// API VERSION 2
 app.get('/api/v2/catalog', async (req, res) => {
     try {
         const { data, error } = await supabase.from('songs').select('*').order('id', { ascending: false }).limit(500);
@@ -717,9 +772,7 @@ app.get('/api/v2/stream/:id', async (req, res) => {
     handleStreamRequest(req, res);
 });
 
-// ==========================================
-// API VERSION 3 (v3) - Optimized Stream Pipeline
-// ==========================================
+// API VERSION 3
 app.get('/api/v3/catalog', async (req, res) => {
     try {
         const { data, error } = await supabase.from('songs').select('*').order('id', { ascending: false }).limit(1000);
@@ -734,9 +787,7 @@ app.get('/api/v3/stream/:id', async (req, res) => {
     handleStreamRequest(req, res);
 });
 
-// ==========================================
-// API VERSION 4 (v4) - Analytics & Trends
-// ==========================================
+// API VERSION 4
 app.get('/api/v4/trends', async (req, res) => {
     try {
         const { data, error } = await supabase.from('songs').select('genre, id').limit(1000);
@@ -761,9 +812,7 @@ app.get('/api/v4/trends', async (req, res) => {
     }
 });
 
-// ==========================================
-// API VERSION 5 (v5) - Batch High-Performance Payload
-// ==========================================
+// API VERSION 5
 app.post('/api/v5/batch-query', requireApiKey, async (req, res) => {
     try {
         const { ids } = req.body;
@@ -896,6 +945,34 @@ app.post('/api/upload', requireApiKey, async (req, res) => {
     }
 });
 
+// Manejador Global de Rutas Desconocidas (Troleo Anti-Scraping / Rutas no válidas)
+app.use((req, res) => {
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ status: 'error', message: 'Endpoint no encontrado en la API.' });
+    }
+    res.status(403).send(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <title>403 Prohibido</title>
+            <style>
+                body { background-color: #030305; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+                .card { border: 1px solid rgba(255,255,255,0.1); padding: 30px; border-radius: 12px; background: rgba(255,255,255,0.02); }
+                h2 { color: #f43f5e; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h2>⚠️ ¿Qué intentas inspeccionar?</h2>
+                <p>Esta ruta no existe o estás intentando ver archivos del servidor.</p>
+                <p style="color: #888;">El dueño de este servidor es un desarrollador independiente trabajando solo.</p>
+            </div>
+        </body>
+        </html>
+    `);
+});
+
 // Inicialización de Servidores
 app.listen(PORT, async () => {
     console.log(`🚀 Servidor Enterprise activo en el puerto ${PORT}`);
@@ -910,3 +987,4 @@ app.listen(PORT, async () => {
         }
     }
 });
+
