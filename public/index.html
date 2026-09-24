@@ -7,10 +7,16 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
@@ -22,6 +28,29 @@
                         sans: ['Plus Jakarta Sans', 'sans-serif'],
                         heading: ['Syne', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            500: '#64748b',
+                            900: '#090a0f',
+                            950: '#030305',
+                        }
+                    },
+                    animation: {
+                        'liquid-shine': 'shine 8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        shine: {
+                            '0%, 100%': { opacity: 0.4, transform: 'scale(1)' },
+                            '50%': { opacity: 0.8, transform: 'scale(1.05)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        }
                     }
                 }
             }
@@ -51,29 +80,69 @@
         .glass-card {
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.07);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.18);
+            transform: translateY(-2px);
         }
 
         .glass-button {
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(12px);
+            transition: all 0.25s ease;
+        }
+
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.95);
+            color: #000000;
+            border-color: #ffffff;
         }
 
         .glass-input {
             background: rgba(10, 11, 16, 0.7);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
             color: #ffffff;
         }
 
+        .ambient-glow {
+            position: fixed;
+            width: 80vw;
+            max-width: 600px;
+            height: 80vw;
+            max-height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #030305; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 9999px; }
+
         .view-section { display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
         .view-section.active { display: block; opacity: 1; }
+
+        .gradient-text-mono {
+            background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
     </style>
 </head>
 <body class="relative min-h-screen flex flex-col justify-between selection:bg-white selection:text-black pb-28 md:pb-24">
 
     <!-- Audio Element -->
     <audio id="main-audio-player" class="hidden"></audio>
+
+    <div class="ambient-glow top-[-100px] left-1/2 -translate-x-1/2 animate-liquid-shine"></div>
 
     <!-- PANTALLA DE MANTENIMIENTO GLOBAL SUPERPUESTA -->
     <div id="maintenance-screen" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl hidden flex flex-col items-center justify-center p-6 text-center">
@@ -84,47 +153,447 @@
         <p id="maintenance-message-text" class="text-zinc-400 text-sm sm:text-base max-w-lg font-mono mb-8">
             El sistema se encuentra en mantenimiento programado. Por favor, reintente en unos minutos.
         </p>
+        <div class="inline-flex items-center space-x-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-mono text-zinc-300">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            <span>Comando activado desde servidor de control</span>
+        </div>
+    </div>
+
+    <!-- BARRA DE ANUNCIO GLOBAL EN TIEMPO REAL -->
+    <div id="global-announcement-bar" class="hidden bg-gradient-to-r from-purple-900/80 via-indigo-900/80 to-blue-900/80 border-b border-purple-500/30 px-4 py-2.5 text-xs font-mono text-white text-center sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-bullhorn text-amber-400 animate-bounce"></i>
+            <span class="font-bold text-amber-300">ANUNCIO OFICIAL:</span>
+            <span id="global-announcement-text">Cargando aviso...</span>
+        </div>
     </div>
 
     <!-- NAVBAR RESPONSIVE -->
     <header class="sticky top-0 z-40 glass-panel border-b border-white/10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-            <a href="#" class="flex items-center space-x-3 shrink-0">
+            
+            <!-- Logo -->
+            <a href="#" onclick="showView('landing')" class="flex items-center space-x-3 shrink-0">
                 <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white text-black font-heading font-black text-xs sm:text-sm flex items-center justify-center tracking-tighter shadow-xl">
                     SK
                 </div>
                 <div>
                     <span class="font-heading font-extrabold text-base sm:text-lg tracking-wider text-white flex items-center gap-1.5">
-                        SEKAI <span class="text-[9px] sm:text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">v5.0 ADAPTIVE</span>
+                        SEKAI <span class="text-[9px] sm:text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10">v5.0 ENTERPRISE</span>
                     </span>
+                    <p class="hidden sm:block text-[9px] text-zinc-400 font-mono tracking-wider uppercase">Multi-Version Audio API Engine</p>
                 </div>
             </a>
+
+            <!-- Desktop Nav -->
+            <nav class="hidden lg:flex items-center space-x-1 bg-white/5 border border-white/10 p-1.5 rounded-full text-xs font-medium backdrop-blur-md">
+                <button onclick="showView('landing')" id="nav-landing" class="px-4 py-2 rounded-full text-white bg-white/10 transition">Overview</button>
+                <button onclick="showView('catalog')" id="nav-catalog" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition">Catálogo Audio</button>
+                <button onclick="showView('docs')" id="nav-docs" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition">APIs (v1-v5)</button>
+                <button onclick="showView('dashboard')" id="nav-dashboard" class="px-4 py-2 rounded-full text-zinc-400 hover:text-white transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-line text-[10px]"></i> Dashboard
+                </button>
+            </nav>
+
+            <!-- Auth Buttons Desktop -->
+            <div class="hidden sm:flex items-center space-x-2" id="auth-buttons-container">
+                <button onclick="openAuthModal('login')" class="text-xs font-semibold text-zinc-300 hover:text-white px-3 py-2 transition">
+                    Iniciar Sesión
+                </button>
+                <button onclick="openAuthModal('register')" class="glass-button text-xs font-bold px-4 py-2 rounded-full flex items-center space-x-1.5">
+                    <span>Generar API Key</span>
+                    <i class="fa-solid fa-key text-[10px]"></i>
+                </button>
+            </div>
+
+            <!-- Profile Info Desktop -->
+            <div class="hidden sm:flex items-center space-x-2" id="user-profile-container">
+                <button onclick="showView('dashboard')" class="flex items-center space-x-2 bg-white/5 border border-white/10 hover:border-white/30 px-3 py-1.5 rounded-full transition max-w-[180px]">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                    <span id="user-display-email" class="text-xs font-mono font-medium text-zinc-200 truncate">usuario@empresa.com</span>
+                </button>
+                <button onclick="logoutUser()" title="Cerrar Sesión" class="w-8 h-8 rounded-full bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-white/10 flex items-center justify-center transition">
+                    <i class="fa-solid fa-power-off text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Mobile Menu Toggle Button -->
+            <button onclick="toggleMobileMenu()" class="lg:hidden w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-300">
+                <i class="fa-solid fa-bars text-sm" id="mobile-menu-icon"></i>
+            </button>
+
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden border-t border-white/10 bg-black/95 px-4 py-4 space-y-3">
+            <nav class="flex flex-col space-y-2 text-sm">
+                <button onclick="showView('landing'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Overview</button>
+                <button onclick="showView('catalog'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Catálogo Audio</button>
+                <button onclick="showView('docs'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Documentación APIs</button>
+                <button onclick="showView('dashboard'); toggleMobileMenu()" class="text-left px-4 py-2 rounded-xl text-zinc-300 hover:bg-white/10">Dashboard</button>
+            </nav>
+            <div class="pt-2 border-t border-white/10 flex flex-col space-y-2" id="mobile-auth-container">
+                <button onclick="openAuthModal('login'); toggleMobileMenu()" class="w-full py-2.5 rounded-xl bg-white/5 text-zinc-200 text-xs font-bold">Iniciar Sesión</button>
+                <button onclick="openAuthModal('register'); toggleMobileMenu()" class="w-full py-2.5 rounded-xl bg-white text-black text-xs font-bold">Obtener API Key Única</button>
+            </div>
         </div>
     </header>
 
-    <!-- MAIN CONTAINER -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex-grow w-full relative text-center space-y-6">
-        <h1 class="font-heading font-extrabold text-3xl sm:text-6xl text-white">
-            Sekai Music API Enterprise
-        </h1>
-        <p class="text-zinc-400 text-sm sm:text-base max-w-xl mx-auto">
-            Infraestructura de audio en tiempo real con Rate Limiting Adaptativo, protección anti-inspección y API Keys dedicadas.
-        </p>
-    </main>
+    <!-- VIEW 1: LANDING PAGE -->
+    <section id="view-landing" class="view-section active max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex-grow w-full relative">
+        <div class="text-center space-y-6 max-w-4xl mx-auto pt-4 sm:pt-8">
+            <div class="inline-flex items-center space-x-2 bg-white/5 border border-white/15 px-3 py-1 rounded-full text-[11px] sm:text-xs font-mono text-zinc-300 animate-float">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>Infraestructura Sonora Multi-API (v1, v2, v3, v4, v5)</span>
+            </div>
 
-    <!-- SCRIPT & FRONTEND LOGIC CON SEGURIDAD ANTI-INSPECCIÓN -->
+            <h1 class="font-heading font-extrabold text-3xl sm:text-6xl lg:text-7xl tracking-tight text-white leading-tight">
+                Infraestructura Audio <br class="hidden sm:block">
+                <span class="gradient-text-mono italic">Ultra-Rápida & Real.</span>
+            </h1>
+
+            <p class="text-zinc-400 text-xs sm:text-base font-normal max-w-2xl mx-auto leading-relaxed">
+                APIs dedicadas e independientes por usuario. Métricas en tiempo real, transcodificación nativa OGG, letras sincronizadas LRC y control remoto por Discord.
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button onclick="openAuthModal('register')" class="w-full sm:w-auto px-6 py-3.5 rounded-full bg-white text-black font-extrabold text-xs sm:text-sm hover:bg-zinc-200 transition shadow-2xl flex items-center justify-center space-x-2">
+                    <span>Crear Cuenta & Obtener API Key Única</span>
+                    <i class="fa-solid fa-key"></i>
+                </button>
+                <button onclick="openAuthModal('login')" class="w-full sm:w-auto px-6 py-3.5 rounded-full glass-button font-bold text-xs sm:text-sm text-white flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Acceder al Panel</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-12 sm:mt-16 glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-white/10 max-w-5xl mx-auto shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between pb-3 border-b border-white/10 text-[10px] sm:text-xs font-mono text-zinc-400">
+                <div class="flex items-center space-x-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500/40"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/40"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500/40"></span>
+                    <span class="ml-2 font-bold text-white truncate">GET /api/v2/catalog</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">200 OK</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                        <span>Petición cURL Con Key Única</span>
+                    </div>
+                    <pre class="bg-black/60 p-3 sm:p-4 rounded-xl border border-white/10 text-[10px] sm:text-xs font-mono text-zinc-300 overflow-x-auto">
+curl -X GET "/api/v2/catalog" \
+  -H "x-api-key: sk_live_your_unique_user_key"</pre>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                        <span>Respuesta JSON v2 Enriquecida</span>
+                        <span class="text-zinc-500">Live DB</span>
+                    </div>
+                    <pre class="bg-black/60 p-3 sm:p-4 rounded-xl border border-white/10 text-[10px] sm:text-xs font-mono text-emerald-400 overflow-x-auto max-h-36">
+{
+  "status": "success",
+  "version": "v2",
+  "total": 3277,
+  "catalog": [...]
+}</pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIEW 2: DASHBOARD -->
+    <section id="view-dashboard" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
+            <div>
+                <h1 class="font-heading font-extrabold text-2xl sm:text-3xl text-white">Dashboard & Analíticas API</h1>
+                <p class="text-xs font-mono text-zinc-400 mt-1">Monitoreo en tiempo real del servidor y peticiones.</p>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <div class="glass-card px-3.5 py-2 rounded-xl flex items-center space-x-2 text-xs font-mono">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-zinc-300">Estado: <strong class="text-white" id="db-health-status">Cargando...</strong></span>
+                </div>
+                <button onclick="refreshDashboardMetrics()" class="glass-button p-2.5 rounded-xl text-xs text-zinc-300 hover:text-white">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Key Block Exclusivo de Usuario Real -->
+        <div class="my-6 glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div class="space-y-2 w-full lg:w-auto">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold">Tu Clave API Personal Registrada</span>
+                        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-mono px-2 py-0.5 rounded-full">Activa</span>
+                    </div>
+                    <div class="flex items-center space-x-2 bg-black/80 p-2.5 rounded-xl border border-white/10 w-full sm:max-w-md">
+                        <i class="fa-solid fa-key text-zinc-500 text-xs pl-1"></i>
+                        <input type="password" id="user-api-key-input" readonly value="Inicia sesión para ver tu Key" class="bg-transparent font-mono text-xs text-zinc-200 focus:outline-none w-full min-w-0">
+                        <button onclick="toggleKeyVisibility()" class="text-xs text-zinc-400 hover:text-white px-1.5"><i class="fa-regular fa-eye" id="eye-icon"></i></button>
+                        <button onclick="copyUserApiKey()" class="bg-white/10 hover:bg-white text-white hover:text-black px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition shrink-0">Copiar</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 pt-2 lg:pt-0">
+                    <div class="font-mono text-xs text-zinc-400">
+                        <p>Límite Streams: <strong class="text-white" id="stream-limit-display">8 Simultáneos</strong></p>
+                        <p>Plan Actual: <strong class="text-emerald-400">Enterprise Unlimited Multi-Key</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metric Cards REALES de Supabase -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div class="glass-card p-4 rounded-2xl space-y-1">
+                <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
+                    <span class="truncate">Total Canciones BD</span>
+                    <i class="fa-solid fa-database text-zinc-500 text-xs"></i>
+                </div>
+                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-total-songs">0</div>
+                <div class="text-[10px] font-mono text-emerald-400 truncate">Sincronización en vivo</div>
+            </div>
+
+            <div class="glass-card p-4 rounded-2xl space-y-1">
+                <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
+                    <span class="truncate">Peticiones API Reales</span>
+                    <i class="fa-solid fa-chart-simple text-zinc-500 text-xs"></i>
+                </div>
+                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-total-requests">0</div>
+                <div class="text-[10px] font-mono text-emerald-400 truncate">Peticiones acumuladas</div>
+            </div>
+
+            <div class="glass-card p-4 rounded-2xl space-y-1">
+                <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
+                    <span class="truncate">Streams Activos</span>
+                    <i class="fa-solid fa-tower-cell text-emerald-400 text-xs"></i>
+                </div>
+                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white" id="stat-active-streams">0 / 8</div>
+                <div class="text-[10px] font-mono text-zinc-400 truncate">Transcodificación FFmpeg</div>
+            </div>
+
+            <div class="glass-card p-4 rounded-2xl space-y-1">
+                <div class="flex items-center justify-between text-zinc-400 text-xs font-mono">
+                    <span class="truncate">Uptime Servidor</span>
+                    <i class="fa-solid fa-bolt text-yellow-400 text-xs"></i>
+                </div>
+                <div class="text-xl sm:text-3xl font-heading font-extrabold text-white truncate" id="stat-uptime">0s</div>
+                <div class="text-[10px] font-mono text-emerald-400 truncate">Servidor Render</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="lg:col-span-2 glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10 space-y-4">
+                <div>
+                    <h3 class="font-heading font-bold text-base text-white">Volumen de Peticiones API (Multi-Endpoint)</h3>
+                    <p class="text-xs font-mono text-zinc-400">Tráfico global monitorizado</p>
+                </div>
+                <div class="h-48 sm:h-64 w-full">
+                    <canvas id="requestsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/10 space-y-4">
+                <div>
+                    <h3 class="font-heading font-bold text-base text-white">Distribución por Versión de API</h3>
+                    <p class="text-xs font-mono text-zinc-400">Uso por clientes (v1 a v5)</p>
+                </div>
+                <div class="h-48 sm:h-64 w-full flex items-center justify-center">
+                    <canvas id="clientsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIEW 3: MUSIC CATALOG -->
+    <section id="view-catalog" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full space-y-6">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+            <div class="relative w-full md:w-1/2">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-zinc-500 text-xs"></i>
+                <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Buscar canción, artista o género..." class="w-full glass-input pl-10 pr-4 py-2.5 rounded-xl text-xs font-mono">
+            </div>
+
+            <div class="flex items-center space-x-2 w-full md:w-auto overflow-x-auto pb-2 scrollbar-none" id="genre-filters">
+                <button onclick="setGenreFilter('')" class="genre-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-black whitespace-nowrap shadow">
+                    Todos
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4" id="catalog-grid">
+            <!-- Renderizado dinámico -->
+        </div>
+
+        <div class="pt-4 border-t border-white/10">
+            <button onclick="toggleAdminPanel()" class="glass-button px-4 py-2 rounded-xl text-xs font-mono text-zinc-300 hover:text-white flex items-center space-x-2">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>Añadir Canción Manual con tu API Key</span>
+            </button>
+        </div>
+
+        <div id="admin-panel" class="hidden glass-panel p-4 sm:p-6 rounded-2xl border border-amber-500/30 space-y-4">
+            <h3 class="text-xs font-bold text-amber-400 font-mono uppercase tracking-wider">Inyectar Canción en Supabase con tu Clave API</h3>
+            <form id="upload-form" onsubmit="addCustomSong(event)" class="space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input type="text" id="song-title" required placeholder="Título de la pista" class="glass-input p-2.5 rounded-xl text-xs">
+                    <input type="text" id="song-artist" required placeholder="Artista" class="glass-input p-2.5 rounded-xl text-xs">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input type="text" id="song-genre" placeholder="Género" class="glass-input p-2.5 rounded-xl text-xs">
+                    <input type="number" id="song-duration" value="180" placeholder="Duración (seg)" class="glass-input p-2.5 rounded-xl text-xs">
+                    <input type="url" id="song-audio-url" required placeholder="URL SoundCloud / YouTube" class="glass-input p-2.5 rounded-xl text-xs">
+                </div>
+                <input type="url" id="song-cover-url" placeholder="URL Carátula HD" class="w-full glass-input p-2.5 rounded-xl text-xs">
+                <textarea id="song-lyrics" placeholder="Letra LRC..." class="w-full glass-input p-2.5 rounded-xl text-xs h-20"></textarea>
+                <button type="submit" class="w-full py-2.5 bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs rounded-xl transition shadow-lg">
+                    Guardar e Inyectar en Servidor API
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- VIEW 4: API DOCUMENTATION (v1 a v5) -->
+    <section id="view-docs" class="view-section max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-grow w-full space-y-6">
+        <div class="glass-panel p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/10 space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-4 gap-2">
+                <div>
+                    <h2 class="font-heading font-extrabold text-xl sm:text-2xl text-white">APIs Multiversión (v1, v2, v3, v4, v5)</h2>
+                    <p class="text-xs font-mono text-zinc-400 mt-1">Endpoints dinámicos de catálogo, transcodificación OGG, letras y analíticas.</p>
+                </div>
+            </div>
+
+            <!-- Endpoint Selector Tabs -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 font-mono text-xs">
+                <button onclick="setDocVersion('v1')" id="tab-v1" class="py-2 rounded-xl bg-white text-black font-bold text-center">API v1 Basic</button>
+                <button onclick="setDocVersion('v2')" id="tab-v2" class="py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center">API v2 HD/LRC</button>
+                <button onclick="setDocVersion('v3')" id="tab-v3" class="py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center">API v3 Audio Stream</button>
+                <button onclick="setDocVersion('v4')" id="tab-v4" class="py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center">API v4 Analytics</button>
+                <button onclick="setDocVersion('v5')" id="tab-v5" class="py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center">API v5 Batch</button>
+            </div>
+
+            <div class="space-y-3 pt-4 border-t border-white/10">
+                <div class="flex items-center bg-black/80 px-3 py-2.5 rounded-xl border border-white/10 flex-grow w-full min-w-0">
+                    <span class="text-xs font-mono text-emerald-400 font-bold mr-2 shrink-0" id="doc-method">GET</span>
+                    <code class="text-xs font-mono text-zinc-300 truncate" id="endpoint-url-display">/api/v1/catalog</code>
+                </div>
+                <button onclick="executeSandboxFetch()" class="w-full sm:w-auto px-5 py-2.5 bg-white text-black hover:bg-zinc-200 font-bold text-xs rounded-xl font-mono transition flex items-center justify-center space-x-2 shrink-0">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Probar Endpoint</span>
+                </button>
+            </div>
+
+            <!-- Documentación detallada por código -->
+            <div class="space-y-4 pt-2">
+                <h3 class="text-xs font-mono text-zinc-400 uppercase tracking-wider font-bold">Ejemplo de Código de Integración</h3>
+                <div class="bg-black/80 p-4 rounded-xl border border-white/10">
+                    <pre id="doc-code-preview" class="text-xs font-mono text-zinc-300 overflow-x-auto">
+// API v1 Ejemplo
+const response = await fetch('/api/v1/catalog', {
+    headers: { 'x-api-key': 'tu_api_key_unica' }
+});
+const data = await response.json();</pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AUTHENTICATION MODAL REAL -->
+    <div id="auth-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-sm w-full p-6 rounded-2xl relative border border-white/15 space-y-4 shadow-2xl">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+
+            <div class="text-center space-y-1">
+                <div class="w-10 h-10 rounded-xl bg-white text-black font-heading font-black text-sm flex items-center justify-center mx-auto">
+                    SK
+                </div>
+                <h3 class="font-heading font-extrabold text-xl text-white" id="modal-title">Iniciar Sesión</h3>
+                <p class="text-[11px] text-zinc-400 font-mono" id="modal-subtitle">Accede a tu API Key e infraestructura.</p>
+            </div>
+
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="text-[11px] font-mono text-zinc-300">Correo Electrónico:</label>
+                    <input type="email" id="auth-email" required placeholder="desarrollador@empresa.com" class="w-full glass-input p-2.5 rounded-xl text-xs mt-1">
+                </div>
+                <div>
+                    <label class="text-[11px] font-mono text-zinc-300">Contraseña:</label>
+                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full glass-input p-2.5 rounded-xl text-xs mt-1">
+                </div>
+
+                <button type="submit" class="w-full py-2.5 bg-white text-black font-extrabold text-xs rounded-xl hover:bg-zinc-200 transition shadow-xl font-mono uppercase tracking-wider">
+                    <span id="modal-submit-btn">Entrar al Sistema</span>
+                </button>
+            </form>
+
+            <div class="text-center pt-1">
+                <button onclick="toggleAuthMode()" class="text-xs font-mono text-zinc-400 hover:text-white underline">
+                    <span id="modal-toggle-text">¿No tienes cuenta? Regístrate aquí</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PERSISTENT MUSIC PLAYER BAR -->
+    <div id="player-bar" class="fixed bottom-0 left-0 right-0 z-40 glass-panel border-t border-white/10 px-4 py-2.5 transition-all transform translate-y-full">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+            
+            <div class="flex items-center space-x-2.5 w-1/2 sm:w-1/3 min-w-0">
+                <img id="player-cover" src="https://via.placeholder.com/150" class="w-10 h-10 object-cover rounded-lg bg-zinc-900 border border-white/10 shrink-0">
+                <div class="truncate">
+                    <h4 id="player-title" class="font-bold text-white text-xs truncate">Selecciona una pista</h4>
+                    <p id="player-artist" class="text-[10px] text-zinc-400 truncate">--</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-center space-x-2 sm:space-x-3 shrink-0">
+                <button onclick="togglePlay()" id="btn-play" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition shadow-lg">
+                    <i class="fa-solid fa-play text-xs ml-0.5"></i>
+                </button>
+                <button onclick="openLyricsModal()" class="text-[11px] text-zinc-300 hover:text-white px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 font-mono">
+                    Letra
+                </button>
+            </div>
+
+            <div class="hidden sm:flex items-center justify-end w-1/3">
+                <span id="player-source" class="text-[9px] font-mono px-2 py-0.5 rounded bg-white/10 text-zinc-300 border border-white/10 truncate">STREAMING OGG v2</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- LYRICS MODAL -->
+    <div id="lyrics-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full p-5 rounded-2xl relative space-y-3 border border-white/15">
+            <button onclick="closeLyricsModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+            <h3 class="font-heading font-extrabold text-base text-white">Letra Sincronizada (LRC)</h3>
+            <div id="lyrics-content" class="text-xs font-mono text-zinc-300 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed bg-black/60 p-3 rounded-xl border border-white/10"></div>
+        </div>
+    </div>
+
+    <!-- SCRIPT & FRONTEND LOGIC COMPLETA CON SEGURIDAD ANTI-INSPECCIÓN -->
     <script>
         // ===============================================
         // PROTECCIÓN ANTI-INSPECCIÓN Y BLOQUEO DE CÓDIGO
         // ===============================================
-        
-        // Bloquear menú contextual de clic derecho
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
         });
 
-        // Deshabilitar teclas de inspección de desarrollador
         document.addEventListener('keydown', function(e) {
+            // Deshabilitar F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+Shift+C
             if (e.keyCode === 123 || 
                (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) ||
                (e.ctrlKey && e.keyCode === 85)) {
@@ -133,20 +602,490 @@
             }
         });
 
-        // Trampa contra apertura de DevTools (Debugger Loop)
+        // Trampa contra herramientas de inspección
         setInterval(function() {
             const start = performance.now();
             (function() {}.constructor("debugger")());
             const end = performance.now();
             if (end - start > 100) {
-                document.body.innerHTML = `
-                    <div style="background:#050508;color:white;text-align:center;padding:50px;font-family:monospace;height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;">
-                        <h1 style="color:#ff3366;">🚨 Acceso Denegado</h1>
-                        <p>Inspección de código detectada e interceptada por seguridad.</p>
-                        <p style="color:#666;font-size:12px;">Mmm, eso está muy mal. Lárgate de acá y ponte a hacer tu trabajo bien.</p>
-                    </div>`;
+                document.body.innerHTML = '<div style="color:white;text-center;padding:50px;font-family:sans-serif;"><h1>Acceso Denegado</h1><p>Inspección de código detectada e interceptada por seguridad.</p></div>';
             }
         }, 1000);
+
+        // ===============================================
+        // LÓGICA DE APLICACIÓN FRONTEND
+        // ===============================================
+        let currentAuthMode = 'login';
+        let currentUser = JSON.parse(localStorage.getItem('sekai_real_user')) || null;
+        let globalCatalog = [];
+        let currentGenre = '';
+        let currentSong = null;
+        let isPlaying = false;
+        let requestsChart = null;
+        let clientsChart = null;
+        let searchTimeout = null;
+        let activeDocVersion = 'v1';
+
+        const audioElement = document.getElementById('main-audio-player');
+        const defaultGenres = ["Eve", "Trío Los Panchos", "Post-Punk", "City Pop", "Boleros", "Indie Rock", "Lofi Beats", "Anime OST", "J-Pop", "Vocaloid"];
+
+        audioElement.addEventListener('ended', () => {
+            isPlaying = false;
+            updatePlayButton();
+        });
+
+        function toggleMobileMenu() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        }
+
+        async function checkSystemStatus() {
+            try {
+                const res = await fetch('/api/system/status');
+                const data = await res.json();
+                
+                const mScreen = document.getElementById('maintenance-screen');
+                if (data.maintenance) {
+                    mScreen.classList.remove('hidden');
+                    document.getElementById('maintenance-message-text').innerText = data.maintenanceMessage;
+                } else {
+                    mScreen.classList.add('hidden');
+                }
+
+                const annBar = document.getElementById('global-announcement-bar');
+                if (data.announcement) {
+                    annBar.classList.remove('hidden');
+                    document.getElementById('global-announcement-text').innerText = data.announcement;
+                } else {
+                    annBar.classList.add('hidden');
+                }
+            } catch (_) {}
+        }
+
+        async function fetchCatalog() {
+            try {
+                const res = await fetch('/api/v2/catalog');
+                const data = await res.json();
+                if (data.status === 'success') {
+                    globalCatalog = data.catalog || [];
+                    renderSongs(globalCatalog);
+                    
+                    const statTotal = document.getElementById('stat-total-songs');
+                    if (statTotal) statTotal.innerText = data.total || globalCatalog.length;
+                }
+            } catch (e) {
+                console.error('Error cargando catálogo:', e);
+            }
+        }
+
+        async function fetchHealth() {
+            try {
+                const res = await fetch('/api/health');
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    document.getElementById('db-health-status').innerText = `Operacional (${data.db})`;
+                    document.getElementById('stat-active-streams').innerText = `${data.streams} / ${data.max_streams}`;
+                    document.getElementById('stream-limit-display').innerText = `${data.max_streams} Simultáneos`;
+                    document.getElementById('stat-uptime').innerText = `${data.uptime_sec}s`;
+                    
+                    if (data.total_songs) {
+                        document.getElementById('stat-total-songs').innerText = data.total_songs;
+                    }
+                    if (data.total_api_requests !== undefined) {
+                        document.getElementById('stat-total-requests').innerText = data.total_api_requests;
+                    }
+                }
+            } catch (_) {}
+        }
+
+        function showView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewId}`).classList.add('active');
+
+            ['landing', 'catalog', 'docs', 'dashboard'].forEach(nav => {
+                const btn = document.getElementById(`nav-${nav}`);
+                if (btn) {
+                    btn.className = (nav === viewId) 
+                        ? 'px-4 py-2 rounded-full text-white bg-white/10 font-bold transition'
+                        : 'px-4 py-2 rounded-full text-zinc-400 hover:text-white transition';
+                }
+            });
+
+            if (viewId === 'dashboard') {
+                initDashboardCharts();
+                fetchHealth();
+            }
+        }
+
+        function playTrack(song) {
+            currentSong = song;
+            document.getElementById('player-title').innerText = song.title;
+            document.getElementById('player-artist').innerText = song.artist || 'Desconocido';
+            document.getElementById('player-cover').src = song.cover_url || song.high_res_cover || 'https://via.placeholder.com/150';
+            document.getElementById('player-source').innerText = (song.source || 'OGG v2 STREAM').toUpperCase();
+            document.getElementById('player-bar').classList.remove('translate-y-full');
+
+            const streamUrl = song.stream_url || `/api/v2/stream/${song.id}`;
+            audioElement.src = streamUrl;
+            
+            audioElement.play().then(() => {
+                isPlaying = true;
+                updatePlayButton();
+            }).catch(err => {
+                console.error("Error al reproducir audio:", err);
+            });
+        }
+
+        function togglePlay() {
+            if (!currentSong) return;
+            if (isPlaying) {
+                audioElement.pause();
+                isPlaying = false;
+            } else {
+                audioElement.play();
+                isPlaying = true;
+            }
+            updatePlayButton();
+        }
+
+        function updatePlayButton() {
+            const btn = document.getElementById('btn-play');
+            btn.innerHTML = isPlaying 
+                ? '<i class="fa-solid fa-pause text-xs"></i>' 
+                : '<i class="fa-solid fa-play text-xs ml-0.5"></i>';
+        }
+
+        function openLyricsModal() {
+            if (!currentSong) return;
+            document.getElementById('lyrics-content').innerText = currentSong.lyrics || "Letra sincronizada no disponible para esta pista.";
+            document.getElementById('lyrics-modal').classList.remove('hidden');
+        }
+
+        function closeLyricsModal() {
+            document.getElementById('lyrics-modal').classList.add('hidden');
+        }
+
+        function handleSearch(query) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                if (!query.trim()) {
+                    renderSongs(globalCatalog);
+                    return;
+                }
+                try {
+                    const res = await fetch(`/api/v1/search?q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        renderSongs(data.results);
+                    }
+                } catch (e) {
+                    console.error('Error buscando:', e);
+                }
+            }, 300);
+        }
+
+        function renderGenreFilters() {
+            const container = document.getElementById('genre-filters');
+            defaultGenres.forEach(g => {
+                const btn = document.createElement('button');
+                btn.onclick = () => setGenreFilter(g);
+                btn.className = "genre-btn px-3 py-1.5 rounded-lg text-xs font-semibold glass-card text-zinc-300 hover:text-white whitespace-nowrap transition";
+                btn.innerText = g;
+                container.appendChild(btn);
+            });
+        }
+
+        function setGenreFilter(genre) {
+            currentGenre = genre;
+            if (!genre) {
+                renderSongs(globalCatalog);
+                return;
+            }
+            const filtered = globalCatalog.filter(s => (s.genre || '').toLowerCase().includes(genre.toLowerCase()));
+            renderSongs(filtered);
+        }
+
+        function renderSongs(data) {
+            const grid = document.getElementById('catalog-grid');
+            if (!data || data.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-zinc-500 py-12 text-xs font-mono">No se encontraron pistas en la base de datos.</p>`;
+                return;
+            }
+
+            grid.innerHTML = data.map(song => `
+                <div class="glass-card rounded-xl p-2.5 flex flex-col justify-between group cursor-pointer" onclick='playTrack(${JSON.stringify(song).replace(/'/g, "&apos;")})'>
+                    <div class="relative aspect-square rounded-lg bg-zinc-900 overflow-hidden mb-2">
+                        <img src="${song.cover_url || song.high_res_cover || 'https://via.placeholder.com/300'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <div class="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-lg">
+                                <i class="fa-solid fa-play text-xs ml-0.5"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white text-xs line-clamp-1">${song.title}</h4>
+                        <p class="text-[10px] text-zinc-400 line-clamp-1 mt-0.5">${song.artist}</p>
+                    </div>
+                    <div class="mt-2 pt-1.5 border-t border-white/10 flex items-center justify-between text-[9px] font-mono text-zinc-500">
+                        <span class="bg-white/10 px-1.5 py-0.5 rounded text-zinc-300 truncate max-w-[70px]">${song.genre || 'General'}</span>
+                        <span>${(song.source || 'db').toUpperCase()}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleAdminPanel() {
+            if (!currentUser || !currentUser.apiKey) {
+                alert('Debes iniciar sesión para obtener tu API Key y subir pistas.');
+                openAuthModal('login');
+                return;
+            }
+            document.getElementById('admin-panel').classList.toggle('hidden');
+        }
+
+        async function addCustomSong(e) {
+            e.preventDefault();
+            if (!currentUser || !currentUser.apiKey) {
+                alert('API Key de usuario requerida.');
+                return;
+            }
+
+            const songData = {
+                title: document.getElementById('song-title').value,
+                artist: document.getElementById('song-artist').value,
+                genre: document.getElementById('song-genre').value || 'General',
+                duration: document.getElementById('song-duration').value || 180,
+                audio_url: document.getElementById('song-audio-url').value,
+                cover_url: document.getElementById('song-cover-url').value,
+                lyrics: document.getElementById('song-lyrics').value
+            };
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': currentUser.apiKey
+                    },
+                    body: JSON.stringify(songData)
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    alert('¡Canción inyectada exitosamente a la base de datos!');
+                    document.getElementById('upload-form').reset();
+                    toggleAdminPanel();
+                    fetchCatalog();
+                } else {
+                    alert('Error: ' + (data.error || 'No se pudo insertar'));
+                }
+            } catch (err) {
+                alert('Error al conectar con el servidor.');
+            }
+        }
+
+        function setDocVersion(v) {
+            activeDocVersion = v;
+            ['v1', 'v2', 'v3', 'v4', 'v5'].forEach(ver => {
+                const tab = document.getElementById(`tab-${ver}`);
+                if (tab) {
+                    tab.className = (ver === v) 
+                        ? 'py-2 rounded-xl bg-white text-black font-bold text-center'
+                        : 'py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white font-bold text-center';
+                }
+            });
+
+            const display = document.getElementById('endpoint-url-display');
+            const preview = document.getElementById('doc-code-preview');
+            const method = document.getElementById('doc-method');
+
+            if (v === 'v1') {
+                method.innerText = 'GET';
+                display.innerText = '/api/v1/catalog';
+                preview.innerText = `// API v1: Catálogo Estándar\nconst res = await fetch('/api/v1/catalog');\nconst data = await res.json();`;
+            } else if (v === 'v2') {
+                method.innerText = 'GET';
+                display.innerText = '/api/v2/catalog';
+                preview.innerText = `// API v2: Metadatos Enriquecidos y Letras LRC\nconst res = await fetch('/api/v2/catalog');\nconst data = await res.json();`;
+            } else if (v === 'v3') {
+                method.innerText = 'GET';
+                display.innerText = '/api/v3/stream/:id';
+                preview.innerText = `// API v3: Audio Streaming OGG Optimizado\nconst streamUrl = "/api/v3/stream/104";\nconst audio = new Audio(streamUrl);`;
+            } else if (v === 'v4') {
+                method.innerText = 'GET';
+                display.innerText = '/api/v4/trends';
+                preview.innerText = `// API v4: Métricas y Tendencias\nconst res = await fetch('/api/v4/trends');\nconst analytics = await res.json();`;
+            } else if (v === 'v5') {
+                method.innerText = 'POST';
+                display.innerText = '/api/v5/batch-query';
+                preview.innerText = `// API v5: Consulta Batch Autenticada con tu Key Única\nconst res = await fetch('/api/v5/batch-query', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json', 'x-api-key': 'tu_api_key_unica' },\n  body: JSON.stringify({ ids: [1, 2, 3, 4] })\n});`;
+            }
+        }
+
+        function initDashboardCharts() {
+            const ctx1 = document.getElementById('requestsChart').getContext('2d');
+            const ctx2 = document.getElementById('clientsChart').getContext('2d');
+
+            if (requestsChart) requestsChart.destroy();
+            if (clientsChart) clientsChart.destroy();
+
+            requestsChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'],
+                    datasets: [{
+                        label: 'Peticiones API Reales',
+                        data: [1200, 2400, 1800, 3100],
+                        borderColor: '#ffffff',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a1a1aa' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a1a1aa' } }
+                    }
+                }
+            });
+
+            clientsChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['API v1', 'API v2', 'API v3', 'API v4', 'API v5'],
+                    datasets: [{
+                        data: [35, 25, 20, 10, 10],
+                        backgroundColor: ['#10b981', '#0284c7', '#a855f7', '#f59e0b', '#ec4899'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa' } } }
+                }
+            });
+        }
+
+        function refreshDashboardMetrics() {
+            fetchHealth();
+            initDashboardCharts();
+        }
+
+        function openAuthModal(mode) {
+            currentAuthMode = mode;
+            updateModalUI();
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+
+        function toggleAuthMode() {
+            currentAuthMode = (currentAuthMode === 'login') ? 'register' : 'login';
+            updateModalUI();
+        }
+
+        function updateModalUI() {
+            const isReg = currentAuthMode === 'register';
+            document.getElementById('modal-title').innerText = isReg ? 'Crear Cuenta Enterprise' : 'Iniciar Sesión';
+            document.getElementById('modal-subtitle').innerText = isReg ? 'Genera tu clave API personal única.' : 'Accede a tu panel y clave API.';
+            document.getElementById('modal-submit-btn').innerText = isReg ? 'Registrarse & Generar Key' : 'Entrar al Sistema';
+            document.getElementById('modal-toggle-text').innerText = isReg ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate aquí';
+        }
+
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const endpoint = currentAuthMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+                if (data.status === 'success') {
+                    currentUser = data.user;
+                    localStorage.setItem('sekai_real_user', JSON.stringify(currentUser));
+                    updateUserSessionUI();
+                    closeAuthModal();
+                    showView('dashboard');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (err) {
+                alert('Error al autenticar con el servidor.');
+            }
+        }
+
+        function logoutUser() {
+            currentUser = null;
+            localStorage.removeItem('sekai_real_user');
+            updateUserSessionUI();
+            showView('landing');
+        }
+
+        function updateUserSessionUI() {
+            const authBtns = document.getElementById('auth-buttons-container');
+            const userProfile = document.getElementById('user-profile-container');
+            const apiKeyInput = document.getElementById('user-api-key-input');
+
+            if (currentUser) {
+                if (authBtns) authBtns.classList.add('hidden');
+                if (userProfile) userProfile.classList.remove('hidden');
+                const displayEmail = document.getElementById('user-display-email');
+                if (displayEmail) displayEmail.innerText = currentUser.email;
+                if (apiKeyInput) apiKeyInput.value = currentUser.apiKey;
+            } else {
+                if (authBtns) authBtns.classList.remove('hidden');
+                if (userProfile) userProfile.classList.add('hidden');
+                if (apiKeyInput) apiKeyInput.value = "Inicia sesión para ver tu Key";
+            }
+        }
+
+        function toggleKeyVisibility() {
+            const input = document.getElementById('user-api-key-input');
+            const icon = document.getElementById('eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-regular fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-regular fa-eye';
+            }
+        }
+
+        function copyUserApiKey() {
+            const input = document.getElementById('user-api-key-input');
+            if (!currentUser) {
+                alert('Debes iniciar sesión para obtener tu Key');
+                return;
+            }
+            navigator.clipboard.writeText(input.value);
+            alert('¡Clave API Copiada!');
+        }
+
+        function executeSandboxFetch() {
+            fetchCatalog();
+            alert(`Petición ejecutada a ${document.getElementById('endpoint-url-display').innerText}`);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderGenreFilters();
+            fetchCatalog();
+            updateUserSessionUI();
+            fetchHealth();
+            checkSystemStatus();
+            setInterval(checkSystemStatus, 10000);
+        });
     </script>
 </body>
 </html>
