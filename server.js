@@ -508,7 +508,7 @@ async function runSlowScraper(maxSongsTarget = 1000, customCategory = null) {
         }
     } catch (e) {
         console.error('Error general en scraper:', e.message);
-    } finally {
+    } fontinally {
         isScraperRunning = false;
         scraperCancelRequested = false;
     }
