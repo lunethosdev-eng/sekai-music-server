@@ -25,7 +25,6 @@ const app = express();
 // 🛡️ PROTECCIÓN DE ARCHIVOS SENSIBLES & TROLEO ANTI-INSPECCIÓN/SCRAPING
 // =========================================================================
 
-// Bloqueo directo a archivos de código fuente, configuraciones o carpetas internas
 const FORBIDDEN_FILES = [
     'server.js', 'package.json', 'package-lock.json', '.env', '.gitignore',
     'Dockerfile', 'docker-compose.yml', 'README.md', 'tsconfig.json'
@@ -71,8 +70,9 @@ app.use(helmet({
 app.use(cors());
 app.use(express.json());
 
-// Exponer únicamente el index.html y activos estáticos seguros
-app.use(express.static(path.join(__dirname, 'public'), {
+// Exponer únicamente la carpeta public y activos estáticos
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath, {
     dotfiles: 'ignore',
     index: 'index.html'
 }));
@@ -95,7 +95,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // ⚡ RATE LIMITING ADAPTATIVO (Peticiones ilimitadas para Apps Registradas)
 // =========================================================================
 
-// Rate Limiter Estricto para tráfico anónimo / desconocido
 const anonymousRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // Ventana de 15 minutos
     max: 100, // Máximo 100 peticiones por ventana para IPs anónimas
@@ -108,16 +107,13 @@ const anonymousRateLimiter = rateLimit({
     }
 });
 
-// Middleware Adaptativo: Evalúa la presencia de API Key antes de limitar
 const adaptiveRateLimiter = async (req, res, next) => {
     const apiKey = req.headers['x-api-key'] || req.query.api_key;
 
-    // Si tiene la Master Key de Administrador -> Ilimitado
     if (apiKey && apiKey === ADMIN_API_KEY) {
         return next();
     }
 
-    // Validar en Supabase si la clave pertenece a un cliente o App registrada
     if (apiKey) {
         try {
             const { data } = await supabase
@@ -127,18 +123,15 @@ const adaptiveRateLimiter = async (req, res, next) => {
                 .maybeSingle();
 
             if (data) {
-                // Es un cliente autenticado / App famosa -> Exento del Rate Limiter
                 req.user = data;
                 return next();
             }
         } catch (_) {}
     }
 
-    // Petición anónima -> Aplicar Rate Limit por IP
     return anonymousRateLimiter(req, res, next);
 };
 
-// Aplicar el Rate Limiter Adaptativo a todas las rutas de API
 app.use('/api/', adaptiveRateLimiter);
 
 const catalogCache = new NodeCache({ stdTTL: 120 });
@@ -146,7 +139,6 @@ let soundcloudClientId = 'iZea6V13B2S91I1B1i0x90nI0N6N9p6a';
 let isScraperRunning = false;
 let scraperCancelRequested = false;
 
-// Estado Global del Sistema (Mantenimiento y Anuncios controlados vía Discord)
 const systemState = {
     maintenance: false,
     maintenanceMessage: 'El sistema se encuentra en mantenimiento programado. Por favor, reintente en unos minutos.',
@@ -154,7 +146,6 @@ const systemState = {
     announcementTimestamp: null
 };
 
-// Contador de Peticiones Globales
 let totalApiRequests = 0;
 app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
@@ -163,7 +154,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Middleware Global de Verificación de Mantenimiento
 const checkMaintenance = (req, res, next) => {
     if (systemState.maintenance && !req.path.startsWith('/api/system/') && !req.path.startsWith('/api/health')) {
         return res.status(530).json({
@@ -176,7 +166,6 @@ const checkMaintenance = (req, res, next) => {
 };
 app.use(checkMaintenance);
 
-// User Agents para Rotación Anti-Bloqueos
 const USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15',
@@ -188,7 +177,6 @@ function getRandomUserAgent() {
     return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 }
 
-// Inicialización de Cookies de Youtube en Play-DL
 async function initPlayDl() {
     try {
         const youtubeCookie = process.env.YOUTUBE_COOKIE;
@@ -207,7 +195,6 @@ async function initPlayDl() {
     }
 }
 
-// Control de Concurrencia de Streams
 const streamConcurrency = {
     current: 0,
     max: Number(process.env.MAX_STREAMS || 8),
@@ -223,14 +210,12 @@ const discordClient = new Client({
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Generador de Claves API Únicas por Usuario
 function generateUniqueApiKey() {
     return 'sk_live_' + crypto.randomBytes(24).toString('hex');
 }
 
-// Middleware de Autenticación de API Key Real
 const requireApiKey = async (req, res, next) => {
-    if (req.user) return next(); // Ya verificado por adaptiveRateLimiter
+    if (req.user) return next();
 
     const apiKey = req.headers['x-api-key'] || req.query.api_key;
     if (!apiKey) {
@@ -304,10 +289,9 @@ function cleanTitleString(title) {
         .trim();
 }
 
-// Scraper de Letras Sincronizadas
 async function fetchSyncedLyrics(title, artist) {
     try {
-        const cleanTitle = cleanTitleString(title);
+        const cleanTitle = cleanTitleString(title) || title;
         const res = await axios.get('https://lrclib.net/api/get', {
             params: { track_name: cleanTitle, artist_name: artist },
             timeout: 4000,
@@ -335,7 +319,6 @@ async function fetchSyncedLyrics(title, artist) {
     return '[00:00.00] Letra no disponible en la base de datos central.';
 }
 
-// SoundCloud & YouTube Scrapers
 async function getSoundCloudClientId() {
     try {
         const pageRes = await axios.get('https://soundcloud.com', {
@@ -349,6 +332,9 @@ async function getSoundCloudClientId() {
                 const match = jsRes.data.match(/client_id\s*:\s*["']([a-zA-Z0-9]{32})["']/);
                 if (match && match[1]) {
                     soundcloudClientId = match[1];
+                    try {
+                        await play.setToken({ soundcloud: { client_id: soundcloudClientId } });
+                    } catch (_) {}
                     return soundcloudClientId;
                 }
             } catch (_) {}
@@ -389,14 +375,17 @@ async function searchYouTube(query) {
         const r = await ytSearch(query);
         const videos = r.videos || [];
         return videos
-            .map((v) => ({
-                title: v.title,
-                artist: v.author ? v.author.name.replace('VEVO', '').replace('- Topic', '').trim() : 'YouTube Artist',
-                duration: v.duration.seconds,
-                source: 'youtube',
-                audio_url: v.url,
-                cover_url: v.thumbnail,
-            }))
+            .map((v) => {
+                const durationInSeconds = v.seconds || (v.duration && typeof v.duration.seconds === 'number' ? v.duration.seconds : 180);
+                return {
+                    title: v.title,
+                    artist: v.author ? v.author.name.replace('VEVO', '').replace('- Topic', '').trim() : 'YouTube Artist',
+                    duration: durationInSeconds,
+                    source: 'youtube',
+                    audio_url: v.url,
+                    cover_url: v.thumbnail,
+                };
+            })
             .filter((v) => v.duration >= 45 && v.audio_url);
     } catch (_) {}
     return [];
@@ -628,7 +617,7 @@ async function getAudioStream(audioUrl) {
     return result.stream;
 }
 
-// Convertidor FFmpeg universal a MP3 (Compatible con iOS, Android y Navegadores Web)
+// Convertidor FFmpeg universal a MP3 con prevención de procesos zombi
 function convertStreamToMp3(inputStream) {
     const outputStream = new PassThrough();
     const command = ffmpeg(inputStream)
@@ -637,26 +626,43 @@ function convertStreamToMp3(inputStream) {
         .audioBitrate('128k')
         .format('mp3')
         .on('error', (error) => {
-            if (error.message && !error.message.includes('Output stream closed')) {
+            if (error.message && !error.message.includes('Output stream closed') && !error.message.includes('SIGKILL')) {
                 console.error('❌ FFmpeg error:', error.message);
             }
-            outputStream.destroy(error);
+            if (!outputStream.destroyed) {
+                outputStream.destroy(error);
+            }
         });
-    inputStream.on('error', (error) => outputStream.destroy(error));
+
+    inputStream.on('error', (error) => {
+        if (!outputStream.destroyed) {
+            outputStream.destroy(error);
+        }
+    });
+
     command.pipe(outputStream, { end: true });
-    return outputStream;
+    return { outputStream, command };
 }
 
 // =========================================================================
 // 📻 MOTOR GLOBAL DE RADIO (RADIO BROWSER INTEGRATION & PROXY)
 // =========================================================================
 
+const RADIO_SERVERS = [
+    'https://all.api.radio-browser.info/json',
+    'https://de1.api.radio-browser.info/json',
+    'https://at1.api.radio-browser.info/json',
+    'https://nl1.api.radio-browser.info/json'
+];
+
 async function getRadioBrowserServer() {
-    try {
-        return 'https://de1.api.radio-browser.info/json';
-    } catch (_) {
-        return 'https://de1.api.radio-browser.info/json';
+    for (const serverUrl of RADIO_SERVERS) {
+        try {
+            await axios.get(`${serverUrl}/stats`, { timeout: 3000 });
+            return serverUrl;
+        } catch (_) {}
     }
+    return RADIO_SERVERS[0];
 }
 
 // 1. Obtener Lista Global de Países
@@ -772,9 +778,10 @@ app.get('/api/v1/radios/proxy', async (req, res) => {
     }
 
     try {
+        const decodedUrl = decodeURIComponent(url);
         const streamResponse = await axios({
             method: 'get',
-            url: decodeURIComponent(url),
+            url: decodedUrl,
             responseType: 'stream',
             timeout: 15000,
             headers: {
@@ -787,11 +794,19 @@ app.get('/api/v1/radios/proxy', async (req, res) => {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Access-Control-Allow-Origin', '*');
 
-        streamResponse.data.pipe(res);
-
-        req.on('close', () => {
+        const cleanRadio = () => {
             try { streamResponse.data.destroy(); } catch (_) {}
+        };
+
+        streamResponse.data.on('error', () => {
+            cleanRadio();
+            if (!res.headersSent) res.status(502).end();
         });
+
+        req.on('close', cleanRadio);
+        res.on('close', cleanRadio);
+
+        streamResponse.data.pipe(res);
     } catch (err) {
         if (!res.headersSent) {
             res.status(502).json({ status: 'error', message: 'No se pudo conectar con el servidor de radio en vivo.', details: err.message });
@@ -1015,7 +1030,6 @@ app.get('/api/v1/search', async (req, res) => {
 
 // Función Manejadora Unificada de Audio Streaming
 async function handleStreamRequest(req, res) {
-    // Cabeceras CORS obligatorias para reproductores web cross-origin
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', '*');
@@ -1060,7 +1074,6 @@ async function handleStreamRequest(req, res) {
         console.log(`🎧 Streaming Track #${id}: ${song.title}`);
         const sourceStream = await getAudioStream(song.audio_url);
 
-        // Cabeceras HTTP para streaming MP3 compatible con reproductores HTML5
         res.status(200);
         res.setHeader('Content-Type', 'audio/mpeg');
         res.setHeader('Accept-Ranges', 'bytes');
@@ -1069,22 +1082,25 @@ async function handleStreamRequest(req, res) {
         res.setHeader('Expires', '0');
         res.setHeader('Content-Disposition', `inline; filename="sekai_${id}.mp3"`);
 
-        const mp3Stream = convertStreamToMp3(sourceStream);
+        const { outputStream: mp3Stream, command: ffmpegCommand } = convertStreamToMp3(sourceStream);
+
+        const cleanupStream = () => {
+            cleanup();
+            try { sourceStream.destroy?.(); } catch (_) {}
+            try { mp3Stream.destroy?.(); } catch (_) {}
+            try { ffmpegCommand.kill?.('SIGKILL'); } catch (_) {}
+        };
 
         mp3Stream.on('error', (err) => {
             console.error('Stream Error:', err.message);
-            cleanup();
+            cleanupStream();
             if (!res.headersSent) res.status(500).end();
             else if (!res.destroyed) res.destroy(err);
         });
 
-        req.on('close', () => {
-            cleanup();
-            try { sourceStream.destroy?.(); } catch (_) {}
-            try { mp3Stream.destroy?.(); } catch (_) {}
-        });
+        req.on('close', cleanupStream);
+        res.on('close', cleanupStream);
 
-        res.on('close', cleanup);
         mp3Stream.pipe(res);
     } catch (err) {
         cleanup();
@@ -1119,7 +1135,16 @@ app.post('/api/upload', requireApiKey, async (req, res) => {
     }
 });
 
-// Manejador Global de Rutas Desconocidas (Troleo Anti-Scraping / Rutas no válidas)
+// Fallback SPA para la interfaz web
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    const indexPath = path.join(publicPath, 'index.html');
+    res.sendFile(indexPath, (err) => {
+        if (err) next();
+    });
+});
+
+// Manejador Global de Rutas Desconocidas
 app.use((req, res) => {
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({ status: 'error', message: 'Endpoint no encontrado en la API.' });
@@ -1129,18 +1154,19 @@ app.use((req, res) => {
         <html lang="es">
         <head>
             <meta charset="UTF-8">
-            <title>403 Prohibido</title>
+            <title>403 Prohibido | Sekai Enterprise</title>
             <style>
-                body { background-color: #030305; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-                .card { border: 1px solid rgba(255,255,255,0.1); padding: 30px; border-radius: 12px; background: rgba(255,255,255,0.02); }
-                h2 { color: #f43f5e; }
+                body { background-color: #030305; color: #fff; font-family: monospace, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+                .card { border: 1px solid rgba(255,255,255,0.1); padding: 30px; border-radius: 12px; background: rgba(255,255,255,0.02); max-width: 480px; }
+                h2 { color: #f43f5e; margin-top: 0; }
+                p { color: #a1a1aa; font-size: 14px; line-height: 1.5; }
             </style>
         </head>
         <body>
             <div class="card">
-                <h2>⚠️ ¿Qué intentas inspeccionar?</h2>
-                <p>Esta ruta no existe o estás intentando ver archivos del servidor.</p>
-                <p style="color: #888;">El dueño de este servidor es un desarrollador independiente trabajando solo.</p>
+                <h2>⚠️ Ruta no encontrada o acceso restringido</h2>
+                <p>La ruta solicitada no existe o no tienes permisos para explorar el servidor.</p>
+                <p style="color: #666; font-size: 12px; margin-top: 20px;">Sekai Enterprise Engine v3.0</p>
             </div>
         </body>
         </html>
