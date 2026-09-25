@@ -288,7 +288,7 @@ function enrichSongV3(song) {
         genre: song.genre,
         duration: song.duration,
         source: song.source,
-        stream_url: `${RENDER_URL}/api/v3/stream/${song.id}?codec=ogg&bitrate=128k`,
+        stream_url: `${RENDER_URL}/api/v3/stream/${song.id}?codec=mp3&bitrate=128k`,
         cover_url: song.cover_url,
         lyrics: song.lyrics,
         api_version: 'v3'
@@ -628,15 +628,18 @@ async function getAudioStream(audioUrl) {
     return result.stream;
 }
 
-function convertStreamToOgg(inputStream) {
+// Convertidor FFmpeg universal a MP3 (Compatible con iOS, Android y Navegadores Web)
+function convertStreamToMp3(inputStream) {
     const outputStream = new PassThrough();
     const command = ffmpeg(inputStream)
         .noVideo()
-        .audioCodec('libvorbis')
+        .audioCodec('libmp3lame')
         .audioBitrate('128k')
-        .format('ogg')
+        .format('mp3')
         .on('error', (error) => {
-            console.error('❌ FFmpeg error:', error.message);
+            if (error.message && !error.message.includes('Output stream closed')) {
+                console.error('❌ FFmpeg error:', error.message);
+            }
             outputStream.destroy(error);
         });
     inputStream.on('error', (error) => outputStream.destroy(error));
@@ -1012,15 +1015,31 @@ app.get('/api/v1/search', async (req, res) => {
 
 // Función Manejadora Unificada de Audio Streaming
 async function handleStreamRequest(req, res) {
-    try {
-        if (streamConcurrency.current >= streamConcurrency.max) {
-            return res.status(429).json({ status: 'error', message: 'Límite de streams alcanzado. Reintente en unos segundos.' });
-        }
-        streamConcurrency.current += 1;
+    // Cabeceras CORS obligatorias para reproductores web cross-origin
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', '*');
 
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    if (streamConcurrency.current >= streamConcurrency.max) {
+        return res.status(429).json({ status: 'error', message: 'Límite de streams alcanzado. Reintente en unos segundos.' });
+    }
+
+    streamConcurrency.current += 1;
+    let cleanupDone = false;
+    const cleanup = () => {
+        if (cleanupDone) return;
+        cleanupDone = true;
+        streamConcurrency.current = Math.max(0, streamConcurrency.current - 1);
+    };
+
+    try {
         const id = Number(req.params.id);
         if (!Number.isInteger(id) || id <= 0) {
-            streamConcurrency.current = Math.max(0, streamConcurrency.current - 1);
+            cleanup();
             return res.status(400).json({ status: 'error', message: 'ID de canción inválido' });
         }
 
@@ -1031,7 +1050,7 @@ async function handleStreamRequest(req, res) {
             .maybeSingle();
 
         if (error || !song || !song.audio_url) {
-            streamConcurrency.current = Math.max(0, streamConcurrency.current - 1);
+            cleanup();
             return res.status(error ? 500 : 404).json({
                 status: 'error',
                 message: error ? error.message : 'Canción no encontrada',
@@ -1041,34 +1060,37 @@ async function handleStreamRequest(req, res) {
         console.log(`🎧 Streaming Track #${id}: ${song.title}`);
         const sourceStream = await getAudioStream(song.audio_url);
 
+        // Cabeceras HTTP para streaming MP3 compatible con reproductores HTML5
         res.status(200);
-        res.setHeader('Content-Type', 'audio/ogg');
-        res.setHeader('Transfer-Encoding', 'chunked');
-        res.setHeader('Cache-Control', 'no-store');
-        res.setHeader('Content-Disposition', `inline; filename="sekai_${id}.ogg"`);
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Content-Disposition', `inline; filename="sekai_${id}.mp3"`);
 
-        const oggStream = convertStreamToOgg(sourceStream);
+        const mp3Stream = convertStreamToMp3(sourceStream);
 
-        const cleanup = () => {
-            streamConcurrency.current = Math.max(0, streamConcurrency.current - 1);
-            try { sourceStream.destroy?.(); } catch (_) {}
-            try { oggStream.destroy?.(); } catch (_) {}
-        };
-
-        oggStream.on('error', (err) => {
+        mp3Stream.on('error', (err) => {
             console.error('Stream Error:', err.message);
             cleanup();
             if (!res.headersSent) res.status(500).end();
             else if (!res.destroyed) res.destroy(err);
         });
 
-        req.on('close', cleanup);
+        req.on('close', () => {
+            cleanup();
+            try { sourceStream.destroy?.(); } catch (_) {}
+            try { mp3Stream.destroy?.(); } catch (_) {}
+        });
+
         res.on('close', cleanup);
-        oggStream.pipe(res);
+        mp3Stream.pipe(res);
     } catch (err) {
-        streamConcurrency.current = Math.max(0, streamConcurrency.current - 1);
+        cleanup();
+        console.error(`❌ Error al reproducir track #${req.params.id}:`, err.message);
         if (!res.headersSent) {
-            res.status(500).json({ status: 'error', message: err.message });
+            res.status(500).json({ status: 'error', message: err.message || 'Error al procesar la transmisión de audio' });
         }
     }
 }
@@ -1139,4 +1161,3 @@ app.listen(PORT, async () => {
         }
     }
 });
-
